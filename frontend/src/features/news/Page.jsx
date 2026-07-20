@@ -105,6 +105,7 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
     border: `1px solid ${theme.colors.borderColor}`,
     fontSize: '15px',
     color: theme.colors.textMain,
+    backgroundColor: '#ffffff',
     outline: 'none',
   };
 
@@ -133,9 +134,10 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
 
   const gridStyle = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+    gridTemplateColumns: '1fr',
     gap: '25px',
   };
+
 
   const cardStyle = {
     backgroundColor: theme.colors.bgCard,
