@@ -379,7 +379,9 @@ class NewsCollectorService:
                     publisher=article["publisher"],
                     published_at=article["published_at"]
                 )
-                crud_news.create(db, obj_in=news_in)
+                db_obj = crud_news.create(db, obj_in=news_in)
+                db.commit()
+                db.refresh(db_obj)
                 processed_count += 1
             except Exception as e:
                 db.rollback()

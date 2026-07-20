@@ -119,14 +119,15 @@ import json
 @router.post("/collect")
 def collect_news(
     target_date: Optional[str] = Query(None, description="Target date to collect (YYYY-MM-DD)"),
-    limit: int = Query(10, ge=10, le=50, description="Max number of articles to collect (10-50)"),
-    db: Session = Depends(get_db)
+    limit: int = Query(10, ge=10, le=50, description="Max number of articles to collect (10-50)")
 ):
     """
     Trigger the collector to fetch and process construction news,
     streaming progress updates for each collected article.
     """
     def event_generator():
+        from app.core.database import SessionLocal
+        db = SessionLocal()
         try:
             # Yield startup message
             yield f"data: {json.dumps({'status': 'progress', 'message': '기사 검색을 시작합니다...'})}\n\n"
@@ -138,6 +139,8 @@ def collect_news(
         except Exception as e:
             logger.exception("News collection failed due to an unexpected error")
             yield f"data: {json.dumps({'status': 'error', 'message': f'오류 발생: {str(e)}'})}\n\n"
+        finally:
+            db.close()
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
