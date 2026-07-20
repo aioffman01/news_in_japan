@@ -3,6 +3,28 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
+import logging
+from logging.handlers import RotatingFileHandler
+
+# Setup centralized error file logger targetting /var/log directory
+LOG_DIR = "/var/log"
+if os.path.exists(LOG_DIR):
+    try:
+        log_file_path = os.path.join(LOG_DIR, "error.log")
+        file_handler = RotatingFileHandler(log_file_path, maxBytes=10*1024*1024, backupCount=5, encoding="utf-8")
+        file_handler.setLevel(logging.ERROR)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+
+        # Add handler to the root logger
+        logging.getLogger().addHandler(file_handler)
+        # Also target uvicorn and app loggers explicitly to catch all errors
+        logging.getLogger("uvicorn.error").addHandler(file_handler)
+        logging.getLogger("app").addHandler(file_handler)
+    except Exception as e:
+        # If writing fails due to permission reasons in /var/log, fall back silently
+        pass
+
 
 from app.core.config import settings
 from app.core.database import engine, Base

@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -8,6 +9,7 @@ from app.schemas.news import NewsResponse
 from app.services.collector import collector_service
 from app.api.v1.auth import verify_token
 
+logger = logging.getLogger("app.api.news")
 router = APIRouter()
 
 @router.get("/", response_model=List[NewsResponse])
@@ -117,6 +119,7 @@ def collect_news(
                 yield f"data: {json.dumps(progress_update)}\n\n"
                 
         except Exception as e:
+            logger.exception("News collection failed due to an unexpected error")
             yield f"data: {json.dumps({'status': 'error', 'message': f'오류 발생: {str(e)}'})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
