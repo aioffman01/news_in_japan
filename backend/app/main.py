@@ -46,6 +46,18 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
+# Strict HTTP no-cache headers middleware to kill browser cache
+@app.middleware("http")
+async def add_no_cache_headers(request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    # Apply to index.html, static assets, and client js routes
+    if path == "/" or path.startswith("/assets") or not path.startswith("/api"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
 # CORS Config - Allow all origins for dev simplicity
 app.add_middleware(
     CORSMiddleware,
