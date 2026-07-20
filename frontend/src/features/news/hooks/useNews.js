@@ -123,26 +123,32 @@ export const useNews = (token, onLogout) => {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder('utf-8');
+      let buffer = '';
       
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
         
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() || '';
         
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.status === 'error') {
-                setCollectMessage('오류가 발생하여 중단되었습니다.');
-                setCollectErrorDetails(data.stack_trace || data.message || '뉴스 수집 처리 중 내부 오류가 발생했습니다.');
-              } else if (data.message) {
-                setCollectMessage(data.message);
+        for (const part of parts) {
+          const lines = part.split('\n');
+          for (const line of lines) {
+            const cleanLine = line.trim();
+            if (cleanLine.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(cleanLine.slice(6).trim());
+                if (data.status === 'error') {
+                  setCollectMessage('오류가 발생하여 중단되었습니다.');
+                  setCollectErrorDetails(data.stack_trace || data.message || '뉴스 수집 처리 중 내부 오류가 발생했습니다.');
+                } else if (data.message) {
+                  setCollectMessage(data.message);
+                }
+              } catch (e) {
+                console.error("SSE parsing single line failed:", e, cleanLine);
               }
-            } catch (e) {
-              // Ignore parse errors on partial chunks
             }
           }
         }
