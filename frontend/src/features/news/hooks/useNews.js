@@ -106,6 +106,7 @@ export const useNews = (token, onLogout) => {
       const response = await fetch(`${apiBaseUrl}/news/collect${targetQuery}`, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'X-Dashboard-Token': token
         }
       });
