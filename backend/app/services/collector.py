@@ -306,16 +306,26 @@ class NewsCollectorService:
                 feed = feedparser.parse(scoped_url)
                 for entry in feed.entries:
                     published_time = None
-                    for date_field in ["published", "pubDate", "updated", "date"]:
-                        if hasattr(entry, date_field):
+                    # Parse publication date with multi-field fallback
+                    published_time = None
+                    for date_field in ["published", "updated", "created"]:
+                        if hasattr(entry, date_field) and getattr(entry, date_field):
                             try:
                                 published_time = dateutil.parser.parse(getattr(entry, date_field))
                                 break
-                            except Exception:
+                            except (ValueError, TypeError):
                                 continue
-
+                    
+                    # Fallback to the user-selected target_date from the calendar
                     if not published_time:
-                        continue
+                        if target_date:
+                            try:
+                                # Build datetime object from selected date and replace with UTC timezone
+                                published_time = datetime.strptime(target_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                            except ValueError:
+                                published_time = datetime.now(timezone.utc)
+                        else:
+                            published_time = datetime.now(timezone.utc)
 
                     pub_date = published_time.date()
                     if not (date_start <= pub_date <= date_end):
