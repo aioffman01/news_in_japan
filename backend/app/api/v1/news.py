@@ -25,6 +25,7 @@ def read_news(
     Requires header validation token.
     """
     from app.models.news import News
+    from datetime import timezone
     import sqlalchemy as sa
     query = db.query(News)
 
@@ -42,8 +43,9 @@ def read_news(
                 last_day = calendar.monthrange(target_date.year, target_date.month)[1]
                 end_day = target_date.replace(day=last_day)
                 
-                start_datetime = datetime.combine(start_day, time.min)
-                end_datetime = datetime.combine(end_day, time.max)
+                # Make datetime timezone-aware (UTC) to match PostgreSQL DateTime with Timezone
+                start_datetime = datetime.combine(start_day, time.min).replace(tzinfo=timezone.utc)
+                end_datetime = datetime.combine(end_day, time.max).replace(tzinfo=timezone.utc)
                 
                 query = query.filter(
                     News.published_at >= start_datetime,
@@ -51,10 +53,9 @@ def read_news(
                 )
             else:
                 # Perform custom filtering on database to fetch articles from target_date - 2 days to target_date
-                # to handle timezone shifts and publication gaps.
                 start_day = target_date - timedelta(days=2)
-                start_datetime = datetime.combine(start_day, time.min)
-                end_datetime = datetime.combine(target_date, time.max)
+                start_datetime = datetime.combine(start_day, time.min).replace(tzinfo=timezone.utc)
+                end_datetime = datetime.combine(target_date, time.max).replace(tzinfo=timezone.utc)
                 
                 query = query.filter(
                     News.published_at >= start_datetime,
@@ -63,10 +64,19 @@ def read_news(
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Expected YYYY-MM-DD.")
     else:
-        # Default limit only if no date is selected
+        # Default fallback: return most recent articles ordered by published date
         return query.order_by(News.is_starred.desc(), News.published_at.desc()).limit(limit).all()
 
-    return query.order_by(News.is_starred.desc(), News.published_at.desc()).all()
+    results = query.order_by(News.is_starred.desc(), News.published_at.desc()).all()
+    
+    # Fail-safe Fallback: If filtering by date returns 0 articles but database contains news,
+    # fallback to return the most recent 20 articles so the user is not greeted with a completely blank screen.
+    if not results and not is_starred:
+        all_news_count = db.query(News).count()
+        if all_news_count > 0:
+            return db.query(News).order_by(News.is_starred.desc(), News.published_at.desc()).limit(20).all()
+            
+    return results
 
 
 
@@ -137,16 +147,26 @@ def check_db_connection(
     db: Session = Depends(get_db)
 ):
     """
-    Test connectivity to the database and return detailed errors if it fails.
+    Test connectivity to the database, check tables, and return detailed row count and logs.
     """
     import traceback
     try:
-        # Try a simple SELECT query to check if connection string and driver are fine
         from sqlalchemy import text
+        from app.models.news import News
+        from app.models.history import CollectionHistory
+        
+        # 1. Simple connection ping
         db.execute(text("SELECT 1;"))
+        
+        # 2. Count news records
+        news_count = db.query(News).count()
+        
+        # 3. Count collection history records
+        history_count = db.query(CollectionHistory).count()
+        
         return {
             "status": "ok",
-            "message": "데이터베이스 연결에 성공했습니다! (Supabase 정상 작동 중)"
+            "message": f"데이터베이스가 정상 연결되었습니다. (저장된 뉴스: {news_count}건, 수집 히스토리: {history_count}건)"
         }
     except Exception as e:
         error_msg = str(e)
@@ -154,7 +174,7 @@ def check_db_connection(
         logger.error(f"DB Check Failed: {error_msg}\n{stack_trace}")
         return {
             "status": "error",
-            "message": "데이터베이스 연결에 실패했습니다. 설정을 확인해 주세요.",
+            "message": "데이터베이스 연결 혹은 테이블 조회에 실패했습니다.",
             "error_detail": error_msg,
             "stack_trace": stack_trace
         }
