@@ -69,11 +69,11 @@ if os.path.exists(STATIC_DIR):
     # Serve index.html or other static files in the root folder (like favicon.ico) for non-API requests
     @app.get("/{catchall:path}")
     async def serve_frontend(catchall: str):
-        # Allow requests to API, Docs, and OpenAPI JSON to fall through to FastAPI routing
+        # If the request matches API or Docs prefixes, bypass this static file server
+        # and let FastAPI routing handle the 404 response naturally if it doesn't match any route
         if catchall.startswith("api") or catchall.startswith("docs") or catchall.startswith("openapi.json"):
-            # Return 404 if API endpoint doesn't exist
             from fastapi import HTTPException
-            raise HTTPException(status_code=404, detail="Not Found")
+            raise HTTPException(status_code=404, detail="API route not found")
             
         file_path = os.path.join(STATIC_DIR, catchall)
         if catchall and os.path.exists(file_path) and os.path.isfile(file_path):
