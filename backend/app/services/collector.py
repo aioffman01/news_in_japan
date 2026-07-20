@@ -279,7 +279,6 @@ class NewsCollectorService:
             try:
                 base_date = datetime.strptime(target_date, "%Y-%m-%d").date()
                 date_start = base_date - timedelta(days=2)
-                # Ensure date_end covers today to fetch the latest RSS items
                 date_end = today if today >= base_date else base_date
             except ValueError:
                 date_start = today - timedelta(days=3)
@@ -294,77 +293,59 @@ class NewsCollectorService:
 
         yield {"status": "progress", "message": f"검색 대상 기간: {date_start} ~ {date_end}"}
 
-        for publisher, url in settings.FEEDS.items():
+        # 1. RSS feeds parsing with absolute safety and forced target_date
+        for term, url in settings.FEEDS.items():
             url_parts = url.split('&hl=ja')
             base_query = url_parts[0]
             tail = "&hl=ja" + url_parts[1] if len(url_parts) > 1 else ""
             scoped_url = f"{base_query}+after:{search_after}+before:{search_before}{tail}"
             
-            yield {"status": "progress", "message": f"[{publisher}] 채널에서 기사 검색 중..."}
-            
+            yield {"status": "progress", "message": f"[{term}] 채널에서 기사 검색 중..."}
             try:
                 feed = feedparser.parse(scoped_url)
                 for entry in feed.entries:
-                    published_time = None
-                    # Parse publication date with multi-field fallback
-                    published_time = None
-                    for date_field in ["published", "updated", "created"]:
-                        if hasattr(entry, date_field) and getattr(entry, date_field):
-                            try:
-                                published_time = dateutil.parser.parse(getattr(entry, date_field))
-                                break
-                            except (ValueError, TypeError):
-                                continue
+                    title_ja = getattr(entry, "title", "").strip()
+                    original_url = getattr(entry, "link", "").strip()
+                    description_ja = getattr(entry, "summary", "").strip() or getattr(entry, "description", "").strip()
                     
-                    # Fallback to the user-selected target_date from the calendar
-                    if not published_time:
-                        if target_date:
-                            try:
-                                # Build datetime object from selected date and replace with UTC timezone
-                                published_time = datetime.strptime(target_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-                            except ValueError:
-                                published_time = datetime.now(timezone.utc)
-                        else:
-                            published_time = datetime.now(timezone.utc)
-
-                    pub_date = published_time.date()
-                    if not (date_start <= pub_date <= date_end):
+                    if not title_ja or not original_url:
                         continue
-
-                    title = getattr(entry, "title", "")
-                    description = getattr(entry, "description", "") or getattr(entry, "summary", "")
-
-                    if self.is_construction_related(title, description):
-                        link = getattr(entry, "link", "")
-                        if not link:
-                            continue
-                        if crud_news.get_by_url(db, link):
-                            continue
-                        from app.models.news import News
-                        if db.query(News).filter(News.title_ja == title).first():
-                            continue
-
-                        # Avoid duplicates in the candidate_articles list itself
-                        if any(c["original_url"] == link for c in candidate_articles):
-                            continue
-                        if any(c["title_ja"] == title for c in candidate_articles):
-                            continue
-
-                        score = self.calculate_priority_score(title, description, publisher)
-
-                        candidate_articles.append({
-                            "title_ja": title,
-                            "description_ja": description,
-                            "original_url": link,
-                            "publisher": publisher,
-                            "published_at": published_time,
-                            "priority_score": score
-                        })
+                        
+                    # Force user-selected target_date from the calendar
+                    if target_date:
+                        try:
+                            published_time = datetime.strptime(target_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                        except ValueError:
+                            published_time = datetime.now(timezone.utc)
+                    else:
+                        published_time = datetime.now(timezone.utc)
+                        
+                    # Skip duplicate URL keys to secure database integrity
+                    if crud_news.get_by_url(db, url=original_url):
+                        continue
+                        
+                    # Skip duplicate titles in the same candidate list
+                    if any(c["original_url"] == original_url for c in candidate_articles):
+                        continue
+                    if any(c["title_ja"] == title_ja for c in candidate_articles):
+                        continue
+                        
+                    publisher_name = "Google News"
+                    if hasattr(entry, "source") and hasattr(entry.source, "title"):
+                        publisher_name = entry.source.title
+                        
+                    candidate_articles.append({
+                        "title_ja": title_ja,
+                        "description_ja": description_ja if description_ja else "설명 없음",
+                        "original_url": original_url,
+                        "publisher": publisher_name,
+                        "published_at": published_time,
+                        "priority_score": self.calculate_priority_score(title_ja, description_ja, publisher_name)
+                    })
             except Exception as e:
-                logger.error(f"Error fetching/parsing feed for {publisher}: {e}")
+                logger.error(f"Error fetching/parsing feed for {term}: {e}")
 
-
-        # Sort candidate articles by priority_score descending, and then by published_at descending
+        # Sort candidate articles by priority_score descending, then by date
         candidate_articles.sort(key=lambda x: (x["priority_score"], x["published_at"]), reverse=True)
 
         total_candidates = len(candidate_articles)
@@ -378,7 +359,7 @@ class NewsCollectorService:
                 # Step 1: Translation Start
                 yield {"status": "progress", "message": f"⏳ [{idx+1}/{min(limit, total_candidates)}] 기사 번역 및 요약 시작: {article_title}..."}
                 
-                # Add delay only if we are using Gemini API to respect free tier
+                # Delay for Gemini API rate limits
                 if self.initialized:
                     time.sleep(4)
 
@@ -414,12 +395,9 @@ class NewsCollectorService:
 
         # Save collection history
         try:
-
             from app.models.history import CollectionHistory
-            from datetime import date as dt_date
             hist_date = target_date if target_date else datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
             
-            # Upsert history log
             existing_hist = db.query(CollectionHistory).filter(CollectionHistory.target_date == hist_date).first()
             if existing_hist:
                 existing_hist.collected_count += processed_count
