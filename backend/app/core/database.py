@@ -3,10 +3,17 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
-# For SQLite, we require connect_args={"check_same_thread": False, "timeout": 30}
+# Configure connection options with 120s timeouts for both SQLite and PostgreSQL
+connect_options = (
+    {"check_same_thread": False, "timeout": 120} 
+    if "sqlite" in settings.DATABASE_URL 
+    else {"sslmode": "require", "connect_timeout": 120}
+)
+
 engine = create_engine(
-    settings.DATABASE_URL, 
-    connect_args={"check_same_thread": False, "timeout": 30} if "sqlite" in settings.DATABASE_URL else {}
+    settings.DATABASE_URL,
+    pool_pre_ping=True,
+    connect_args=connect_options
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

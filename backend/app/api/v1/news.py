@@ -140,8 +140,22 @@ def collect_news(
     streaming progress updates for each collected article.
     """
     def event_generator():
-        from app.core.database import SessionLocal
-        db = SessionLocal()
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from app.core.config import settings
+        
+        db_url = settings.DATABASE_URL
+        if db_url.startswith("sqlite"):
+            engine = create_engine(db_url, connect_args={"check_same_thread": False})
+        else:
+            engine = create_engine(
+                db_url,
+                pool_pre_ping=True,
+                connect_args={"sslmode": "require", "connect_timeout": 120}
+            )
+        
+        LocalSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        db = LocalSession()
         try:
             # Yield startup message
             yield f"data: {json.dumps({'status': 'progress', 'message': '기사 검색을 시작합니다...'})}\n\n"
@@ -151,10 +165,13 @@ def collect_news(
                 yield f"data: {json.dumps(progress_update)}\n\n"
                 
         except Exception as e:
+            import traceback
+            err_trace = traceback.format_exc()
             logger.exception("News collection failed due to an unexpected error")
-            yield f"data: {json.dumps({'status': 'error', 'message': f'오류 발생: {str(e)}'})}\n\n"
+            yield f"data: {json.dumps({'status': 'error', 'message': f'오류 발생: {str(e)}', 'stack_trace': err_trace})}\n\n"
         finally:
             db.close()
+            engine.dispose()
 
     return StreamingResponse(
         event_generator(),
