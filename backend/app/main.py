@@ -62,29 +62,15 @@ STATIC_DIR = os.path.join(BASE_DIR, "static")
 
 # If static directory exists (production docker environment), serve frontend assets
 if os.path.exists(STATIC_DIR):
+    # Mount specific assets folder first
     assets_dir = os.path.join(STATIC_DIR, "assets")
     if os.path.exists(assets_dir):
-        app.mount("/assets", StaticFiles(directory=assets_dir), name="static")
-
-    # Serve index.html or other static files in the root folder (like favicon.ico) for non-API requests
-    @app.get("/{catchall:path}")
-    async def serve_frontend(catchall: str):
-        # If the request matches API or Docs prefixes, bypass this static file server
-        # and let FastAPI routing handle the 404 response naturally if it doesn't match any route
-        if catchall.startswith("api") or catchall.startswith("docs") or catchall.startswith("openapi.json"):
-            from fastapi import HTTPException
-            raise HTTPException(status_code=404, detail="API route not found")
-            
-        file_path = os.path.join(STATIC_DIR, catchall)
-        if catchall and os.path.exists(file_path) and os.path.isfile(file_path):
-            return FileResponse(file_path)
-            
-        # Fallback to index.html for SPA router
-        index_path = os.path.join(STATIC_DIR, "index.html")
-        if os.path.exists(index_path):
-            return FileResponse(index_path)
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="static_assets")
         
-        return {"message": "Welcome to NewsInJapan API. Go to /docs for Swagger UI."}
+    # Mount the rest of the build directory at root / with html=True
+    # Starlette will resolve files inside, and fallback to index.html natively for HTML requests
+    # Crucially, Starlette mounts are checked LAST in the routing order, so all API routes under /api/v1 are guaranteed to run first.
+    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static_root")
 else:
     @app.get("/")
     def read_root():
