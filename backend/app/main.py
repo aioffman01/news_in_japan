@@ -67,10 +67,23 @@ if os.path.exists(STATIC_DIR):
     if os.path.exists(assets_dir):
         app.mount("/assets", StaticFiles(directory=assets_dir), name="static_assets")
         
-    # Mount the rest of the build directory at root / with html=True
-    # Starlette will resolve files inside, and fallback to index.html natively for HTML requests
-    # Crucially, Starlette mounts are checked LAST in the routing order, so all API routes under /api/v1 are guaranteed to run first.
-    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static_root")
+    @app.get("/{catchall:path}")
+    async def serve_frontend(catchall: str):
+        # Exclude API and documentation routes from static serving to let standard routing handle them
+        if catchall.startswith("api") or catchall.startswith("docs") or catchall.startswith("openapi.json"):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="API route not found")
+            
+        file_path = os.path.join(STATIC_DIR, catchall)
+        if catchall and os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+            
+        # Fallback to index.html for SPA router
+        index_path = os.path.join(STATIC_DIR, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        
+        return {"message": "Welcome to NewsInJapan API. Go to /docs for Swagger UI."}
 else:
     @app.get("/")
     def read_root():
