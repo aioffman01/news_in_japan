@@ -9,6 +9,9 @@ COPY frontend/package*.json ./
 RUN npm ci
 
 COPY frontend/ ./
+
+# Force rebuild on Cloud Build to clear old Vite output caches
+ARG CACHEBUST=1
 RUN npm run build
 
 # ==========================================
