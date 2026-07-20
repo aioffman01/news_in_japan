@@ -125,4 +125,33 @@ def collect_news(
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
+@router.get("/db-check")
+def check_db_connection(
+    db: Session = Depends(get_db)
+):
+    """
+    Test connectivity to the database and return detailed errors if it fails.
+    """
+    import traceback
+    try:
+        # Try a simple SELECT query to check if connection string and driver are fine
+        from sqlalchemy import text
+        db.execute(text("SELECT 1;"))
+        return {
+            "status": "ok",
+            "message": "데이터베이스 연결에 성공했습니다! (Supabase 정상 작동 중)"
+        }
+    except Exception as e:
+        error_msg = str(e)
+        stack_trace = traceback.format_exc()
+        logger.error(f"DB Check Failed: {error_msg}\n{stack_trace}")
+        return {
+            "status": "error",
+            "message": "데이터베이스 연결에 실패했습니다. 설정을 확인해 주세요.",
+            "error_detail": error_msg,
+            "stack_trace": stack_trace
+        }
+
+
+
 

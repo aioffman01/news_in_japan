@@ -39,5 +39,15 @@ export const checkCollectionStatus = async (token, date) => {
   return response.data;
 };
 
+export const checkDbStatus = async (token) => {
+  const response = await apiClient.get('/news/db-check', {
+    headers: {
+      'X-Dashboard-Token': token
+    }
+  });
+  return response.data;
+};
+
+
 
 

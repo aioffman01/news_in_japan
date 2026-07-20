@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { fetchNews, triggerCollection, toggleStar, checkCollectionStatus } from '../../../api/news';
+import { fetchNews, triggerCollection, toggleStar, checkCollectionStatus, checkDbStatus } from '../../../api/news';
 
 export const useNews = (token, onLogout) => {
   const getYesterdayDateString = () => {
@@ -17,6 +17,38 @@ export const useNews = (token, onLogout) => {
   const [error, setError] = useState('');
   const [collecting, setCollecting] = useState(false);
   const [collectMessage, setCollectMessage] = useState('');
+
+  // DB diagnostic states
+  const [dbChecking, setDbChecking] = useState(false);
+  const [dbStatus, setDbStatus] = useState('idle'); // 'idle' | 'success' | 'error'
+  const [dbMessage, setDbMessage] = useState('');
+  const [dbErrorDetails, setDbErrorDetails] = useState('');
+
+  const handleCheckDb = async () => {
+    setDbChecking(true);
+    setDbStatus('idle');
+    setDbMessage('DB 연결 상태 확인 중...');
+    setDbErrorDetails('');
+    try {
+      const res = await checkDbStatus(token);
+      if (res.status === 'ok') {
+        setDbStatus('success');
+        setDbMessage(res.message);
+      } else {
+        setDbStatus('error');
+        setDbMessage(res.message);
+        setDbErrorDetails(res.stack_trace || res.error_detail || '알 수 없는 오류가 발생했습니다.');
+      }
+    } catch (err) {
+      console.error(err);
+      setDbStatus('error');
+      setDbMessage('API 호출 도중 오류가 발생했습니다.');
+      setDbErrorDetails(err.response?.data?.detail || err.message || err.toString());
+    } finally {
+      setDbChecking(false);
+    }
+  };
+
 
   const loadNews = useCallback(async () => {
     setLoading(true);
@@ -135,6 +167,11 @@ export const useNews = (token, onLogout) => {
     collectMessage,
     handleCollect,
     handleToggleStar,
+    dbChecking,
+    dbStatus,
+    dbMessage,
+    dbErrorDetails,
+    handleCheckDb,
     refresh: loadNews
   };
 };

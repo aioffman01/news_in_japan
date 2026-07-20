@@ -17,7 +17,12 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
     collecting,
     collectMessage,
     handleCollect,
-    handleToggleStar
+    handleToggleStar,
+    dbChecking,
+    dbStatus,
+    dbMessage,
+    dbErrorDetails,
+    handleCheckDb
   } = useNews(token, onLogout);
 
   // Initialize year and month local selections
@@ -294,7 +299,7 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
                   </select>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <button
                   onClick={handleCollect}
                   disabled={collecting || isAlreadyCollected}
@@ -311,6 +316,19 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
                     : isAlreadyCollected 
                       ? '수집 완료' 
                       : '새 뉴스 수집 트리거'}
+                </button>
+                <button
+                  onClick={handleCheckDb}
+                  disabled={dbChecking}
+                  style={{
+                    ...collectButtonStyle,
+                    backgroundColor: theme.colors.primary,
+                    cursor: 'pointer',
+                  }}
+                  onMouseOver={(e) => e.target.style.opacity = '0.9'}
+                  onMouseOut={(e) => e.target.style.opacity = '1'}
+                >
+                  {dbChecking ? '진단 중...' : '🔌 DB 연결 진단'}
                 </button>
               </div>
             </>
@@ -355,6 +373,49 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
             </div>
           )}
         </div>
+
+        {/* Database Diagnostic Status Card */}
+        {dbStatus !== 'idle' && (
+          <div style={{
+            marginBottom: '30px',
+            padding: '20px',
+            borderRadius: theme.radius.md,
+            backgroundColor: dbStatus === 'success' ? '#E8F5E9' : '#FFEBEE',
+            border: `1px solid ${dbStatus === 'success' ? '#81C784' : '#E57373'}`,
+            color: dbStatus === 'success' ? '#2E7D32' : '#C62828',
+            boxShadow: theme.shadows.sm,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', fontSize: '16px', marginBottom: dbErrorDetails ? '15px' : '0px' }}>
+              <span>{dbStatus === 'success' ? '✅' : '❌'}</span>
+              <span>{dbMessage}</span>
+            </div>
+            
+            {dbStatus === 'error' && dbErrorDetails && (
+              <div style={{ marginTop: '10px' }}>
+                <div style={{ fontWeight: '600', marginBottom: '8px', fontSize: '14px', color: '#B71C1C' }}>
+                  🔧 상세 오류 로그 (디버깅 정보):
+                </div>
+                <pre style={{
+                  backgroundColor: '#1E1E1E',
+                  color: '#FF5252',
+                  padding: '15px',
+                  borderRadius: theme.radius.sm,
+                  overflowX: 'auto',
+                  fontSize: '13px',
+                  fontFamily: "'Courier New', Courier, monospace",
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-all',
+                  margin: 0,
+                  maxHeight: '300px',
+                  border: '1px solid #333'
+                }}>
+                  {dbErrorDetails}
+                </pre>
+              </div>
+            )}
+          </div>
+        )}
+
 
 
         {collecting ? (
