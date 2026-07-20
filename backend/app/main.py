@@ -34,7 +34,11 @@ from app.api.v1.auth import router as auth_router
 from app.models.history import CollectionHistory
 
 # Initialize database tables
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as db_init_err:
+    import traceback
+    logging.getLogger("app").error(f"Database table initialization failed: {db_init_err}\n{traceback.format_exc()}")
 
 
 app = FastAPI(
