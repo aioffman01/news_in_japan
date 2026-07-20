@@ -68,8 +68,10 @@ class NewsCollectorService:
                 summary_ko = f"[번역요약] {summary_ko_raw}"
                 return title_ko, summary_ko
             except Exception as e:
-                logger.error(f"Fallback translation failed: {e}")
-                return f"[원문] {title_ja}", f"[원문요약] {clean_desc[:100]}..."
+                logger.error(f"Fallback translation failed: {e}. Storing original Japanese content instead.")
+                # If translation fails, fallback to storing original Japanese title and description (up to 200 characters)
+                truncated_ja_200 = clean_desc[:200]
+                return title_ja, truncated_ja_200
 
         if not self.model:
             return fallback_translate()
