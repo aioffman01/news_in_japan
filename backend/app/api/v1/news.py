@@ -12,7 +12,7 @@ from app.api.v1.auth import verify_token
 logger = logging.getLogger("app.api.news")
 router = APIRouter()
 
-@router.get("/", response_model=List[NewsResponse])
+@router.get("", response_model=List[NewsResponse])
 def read_news(
     limit: int = 10,
     date: Optional[str] = Query(None, description="Filter articles by publish date (YYYY-MM-DD)"),
