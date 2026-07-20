@@ -274,17 +274,17 @@ class NewsCollectorService:
         """
         Generator version of collect_news that yields progress steps as dictionary objects.
         """
+        today = datetime.now(timezone.utc).date()
         if target_date:
             try:
                 base_date = datetime.strptime(target_date, "%Y-%m-%d").date()
-                date_start = base_date - timedelta(days=1)
-                date_end = base_date
+                date_start = base_date - timedelta(days=2)
+                # Ensure date_end covers today to fetch the latest RSS items
+                date_end = today if today >= base_date else base_date
             except ValueError:
-                today = datetime.now(timezone.utc).date()
                 date_start = today - timedelta(days=3)
                 date_end = today
         else:
-            today = datetime.now(timezone.utc).date()
             date_start = today - timedelta(days=3)
             date_end = today
 
@@ -365,7 +365,8 @@ class NewsCollectorService:
         for idx, article in enumerate(candidate_articles[:limit]):
             article_title = article['title_ja'][:20]
             try:
-                yield {"status": "progress", "message": f"[{idx+1}/{min(limit, total_candidates)}] 기사 번역 중: {article_title}..."}
+                # Step 1: Translation Start
+                yield {"status": "progress", "message": f"⏳ [{idx+1}/{min(limit, total_candidates)}] 기사 번역 및 요약 시작: {article_title}..."}
                 
                 # Add delay only if we are using Gemini API to respect free tier
                 if self.initialized:
@@ -374,6 +375,9 @@ class NewsCollectorService:
                 title_ko, summary_ko = self.summarize_and_translate_with_gemini(
                     article["title_ja"], article["description_ja"]
                 )
+
+                # Step 2: Translation Finished, Attempting DB Save
+                yield {"status": "progress", "message": f"📝 [{idx+1}] 번역 완료! 데이터베이스 등록을 시도하는 중..."}
 
                 news_in = NewsCreate(
                     title_ja=article["title_ja"],
@@ -384,20 +388,18 @@ class NewsCollectorService:
                     published_at=article["published_at"]
                 )
                 
-                # DB insert attempt
-                yield {"status": "progress", "message": f"[{idx+1}] 데이터베이스에 등록을 시도하는 중..."}
                 db_obj = crud_news.create(db, obj_in=news_in)
                 db.commit()
                 db.refresh(db_obj)
                 processed_count += 1
                 
-                # Success notification
-                yield {"status": "progress", "message": f"🟢 [{idx+1}] DB 정상 등록 성공: {title_ko[:20]}..."}
+                # Step 3: DB Final Save Success
+                yield {"status": "progress", "message": f"🟢 [{idx+1}] DB 최종 등록 성공: {title_ko[:20]}..."}
             except Exception as e:
                 db.rollback()
                 err_msg = str(e).split('\n')[0]
                 logger.error(f"Error processing article '{article['title_ja']}': {e}")
-                # Failure notification
+                # Step 3: DB Final Save Failure
                 yield {"status": "progress", "message": f"🔴 [{idx+1}] DB 등록 실패 (이유: {err_msg[:30]}): {article_title}..."}
 
         # Save collection history
