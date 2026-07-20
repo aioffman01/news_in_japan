@@ -101,14 +101,28 @@ def get_collection_status(
     _auth: bool = Depends(verify_token)
 ):
     """
-    Check if news has already been collected for a specific date.
-    Requires header validation token.
+    Get the exact count of collected news articles in the database for the given date.
     """
-    from app.models.history import CollectionHistory
-    record = db.query(CollectionHistory).filter(CollectionHistory.target_date == date).first()
-    if record:
-        return {"is_collected": True, "collected_count": record.collected_count}
-    return {"is_collected": False, "collected_count": 0}
+    from app.models.news import News
+    from datetime import timezone, time
+    try:
+        target_date = datetime.strptime(date, "%Y-%m-%d").date()
+        start_datetime = datetime.combine(target_date, time.min).replace(tzinfo=timezone.utc)
+        end_datetime = datetime.combine(target_date, time.max).replace(tzinfo=timezone.utc)
+        
+        # Count actual news records saved in database for this specific day
+        actual_count = db.query(News).filter(
+            News.published_at >= start_datetime,
+            News.published_at <= end_datetime
+        ).count()
+        
+        return {
+            "is_collected": actual_count > 0,
+            "collected_count": actual_count
+        }
+    except Exception as e:
+        logger.error(f"Error checking collection status: {e}")
+        return {"is_collected": False, "collected_count": 0}
 
 
 

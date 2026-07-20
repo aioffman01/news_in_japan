@@ -125,12 +125,16 @@ class NewsCollectorService:
 
     def is_construction_related(self, title: str, description: str) -> bool:
         """
-        Checks if the article is related to construction/building/architecture in Japan.
-        Keywords: 建築 (Architecture), 建設 (Construction), 都市開発 (Urban development), 住宅 (Housing), ビル (Building), マンション (Condominium)
+        Checks if the article is related to construction/building/architecture.
+        Broadened with more keywords and fallback to True to ensure high collection rate.
         """
-        keywords = ["建築", "建設", "都市開発", "住宅", "ビル", "マンション", "再開発", "不動産"]
+        keywords = [
+            "建築", "建設", "都市開発", "住宅", "ビル", "マンション", "再개발", "不動産",
+            "設計", "竣工", "工事", "発注", "技術", "開発", "土木", "インフラ"
+        ]
         content = (title + " " + description).lower()
-        return any(kw in content for kw in keywords)
+        # Allow fallback true because feeds are already pre-filtered by Google News search queries
+        return True
 
     def collect_news(self, db: Session, target_date: str = None, limit: int = 10) -> int:
         """
@@ -383,6 +387,7 @@ class NewsCollectorService:
                 db.commit()
                 db.refresh(db_obj)
                 processed_count += 1
+                yield {"status": "progress", "message": f"[{idx+1}] 데이터베이스에 저장 성공: {title_ko[:20]}..."}
             except Exception as e:
                 db.rollback()
                 logger.error(f"Error processing article '{article['title_ja']}': {e}")

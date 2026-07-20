@@ -11,14 +11,16 @@ export const useNews = (token, onLogout) => {
   const [date, setDate] = useState(getYesterdayDateString());
   const [articles, setArticles] = useState([]);
   const [onlyStarred, setOnlyStarred] = useState(false);
-  const [isAlreadyCollected, setIsAlreadyCollected] = useState(false);
   const [collectionLimit, setCollectionLimit] = useState(10);
+  const [dbCollectedCount, setDbCollectedCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [loadErrorDetails, setLoadErrorDetails] = useState('');
   const [collecting, setCollecting] = useState(false);
   const [collectMessage, setCollectMessage] = useState('');
   const [collectErrorDetails, setCollectErrorDetails] = useState('');
+
+  const isAlreadyCollected = dbCollectedCount >= collectionLimit;
 
   // DB diagnostic states
   const [dbChecking, setDbChecking] = useState(false);
@@ -81,7 +83,7 @@ export const useNews = (token, onLogout) => {
     if (!date) return;
     try {
       const statusData = await checkCollectionStatus(token, date);
-      setIsAlreadyCollected(statusData.is_collected);
+      setDbCollectedCount(statusData.collected_count || 0);
     } catch (err) {
       console.error('Failed to check collection status:', err);
     }
@@ -146,7 +148,7 @@ export const useNews = (token, onLogout) => {
         }
       }
       
-      setIsAlreadyCollected(true);
+      loadStatus();
       loadNews();
     } catch (err) {
       console.error(err);
