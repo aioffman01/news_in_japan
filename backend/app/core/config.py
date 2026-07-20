@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "NewsInJapan Backend"
     
     # SQLite Database Configuration
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./news.db")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:////tmp/news.db")
     
     # Gemini API Key configuration
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
