@@ -7,10 +7,14 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     environment:
       - DATABASE_URL=postgresql://postgres:newsinjapan1234@db.ltcxrwkbmxdklbemcipf.supabase.co:5432/postgres
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
     restart: always
+
 
 
 volumes:
