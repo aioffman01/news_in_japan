@@ -36,6 +36,9 @@ COPY backend/ .
 ARG BUILD_VERSION
 ENV BUILD_VERSION=${BUILD_VERSION:-"dev-unknown"}
 
+# Dynamically generate the version.info file inside backend directory so API reads it
+RUN echo "NewsInJapan Build: ${BUILD_VERSION}" > version.info
+
 # Copy built frontend assets to FastAPI static folder
 # FastAPI main.py is configured to serve static assets from "/workspace/static"
 COPY --from=frontend-builder /app/frontend/dist ./static
@@ -45,3 +48,4 @@ EXPOSE 8080
 
 # Run FastAPI with uvicorn using shell form to resolve environment variables
 CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}
+
