@@ -288,18 +288,11 @@ class NewsCollectorService:
             date_end = today
 
         candidate_articles = []
-        search_after = date_start.strftime("%Y-%m-%d")
-        search_before = (date_end + timedelta(days=1)).strftime("%Y-%m-%d")
+        yield {"status": "progress", "message": f"검색 기준 날짜: {target_date if target_date else today}"}
 
-        yield {"status": "progress", "message": f"검색 대상 기간: {date_start} ~ {date_end}"}
-
-        # 1. RSS feeds parsing with absolute safety and forced target_date
+        # 1. RSS feeds parsing without fragile query date filters (always retrieve fresh feeds)
         for term, url in settings.FEEDS.items():
-            url_parts = url.split('&hl=ja')
-            base_query = url_parts[0]
-            tail = "&hl=ja" + url_parts[1] if len(url_parts) > 1 else ""
-            scoped_url = f"{base_query}+after:{search_after}+before:{search_before}{tail}"
-            
+            scoped_url = url
             yield {"status": "progress", "message": f"[{term}] 채널에서 기사 검색 중..."}
             try:
                 feed = feedparser.parse(scoped_url)
@@ -311,14 +304,32 @@ class NewsCollectorService:
                     if not title_ja or not original_url:
                         continue
                         
-                    # Force user-selected target_date from the calendar
+                    # Parse real publication time
+                    published_time = None
+                    for date_field in ["published", "updated", "created"]:
+                        if hasattr(entry, date_field) and getattr(entry, date_field):
+                            try:
+                                published_time = dateutil.parser.parse(getattr(entry, date_field))
+                                break
+                            except (ValueError, TypeError):
+                                continue
+                                
+                    # Strictly filter articles to match target_date only
                     if target_date:
                         try:
-                            published_time = datetime.strptime(target_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                            target_dt = datetime.strptime(target_date, "%Y-%m-%d").date()
+                            if published_time:
+                                # Skip if article is published on a different day
+                                if published_time.date() != target_dt:
+                                    continue
+                            else:
+                                # Fallback strictly to target_date if date parsing fails
+                                published_time = datetime.strptime(target_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
                         except ValueError:
                             published_time = datetime.now(timezone.utc)
                     else:
-                        published_time = datetime.now(timezone.utc)
+                        if not published_time:
+                            published_time = datetime.now(timezone.utc)
                         
                     # Skip duplicate URL keys to secure database integrity
                     if crud_news.get_by_url(db, url=original_url):
