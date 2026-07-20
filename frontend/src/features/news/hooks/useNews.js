@@ -15,6 +15,7 @@ export const useNews = (token, onLogout) => {
   const [collectionLimit, setCollectionLimit] = useState(10);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loadErrorDetails, setLoadErrorDetails] = useState('');
   const [collecting, setCollecting] = useState(false);
   const [collectMessage, setCollectMessage] = useState('');
   const [collectErrorDetails, setCollectErrorDetails] = useState('');
@@ -54,6 +55,7 @@ export const useNews = (token, onLogout) => {
   const loadNews = useCallback(async () => {
     setLoading(true);
     setError('');
+    setLoadErrorDetails('');
     try {
       const data = await fetchNews(token, date, onlyStarred ? true : null);
       setArticles(data);
@@ -63,6 +65,12 @@ export const useNews = (token, onLogout) => {
         onLogout();
       } else {
         setError('뉴스를 가져오는데 실패했습니다.');
+        // Detailed error payload capture
+        const detailMsg = err.response?.data?.detail 
+          ? (typeof err.response.data.detail === 'string' ? err.response.data.detail : JSON.stringify(err.response.data.detail))
+          : '';
+        const rawErr = err.response?.data ? JSON.stringify(err.response.data) : '';
+        setLoadErrorDetails(detailMsg || rawErr || err.message || err.toString());
       }
     } finally {
       setLoading(false);
@@ -179,6 +187,7 @@ export const useNews = (token, onLogout) => {
     collecting,
     collectMessage,
     collectErrorDetails,
+    loadErrorDetails,
     handleCollect,
     handleToggleStar,
     dbChecking,

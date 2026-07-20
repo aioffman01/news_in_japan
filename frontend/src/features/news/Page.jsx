@@ -17,6 +17,7 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
     collecting,
     collectMessage,
     collectErrorDetails,
+    loadErrorDetails,
     handleCollect,
     handleToggleStar,
     dbChecking,
@@ -482,7 +483,30 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
           </div>
         ) : error ? (
           <div style={{ textAlign: 'center', padding: '50px', color: theme.colors.accent }}>
-            {error}
+            <div style={{ fontSize: '18px', fontWeight: '600', marginBottom: '15px' }}>{error}</div>
+            {loadErrorDetails && (
+              <div style={{ marginTop: '20px', maxWidth: '800px', margin: '20px auto 0 auto', textAlign: 'left' }}>
+                <div style={{ fontWeight: '600', marginBottom: '8px', fontSize: '14px', color: '#B71C1C' }}>
+                  🔧 API 로드 실패 상세 오류 로그 (디버그 정보):
+                </div>
+                <pre style={{
+                  backgroundColor: '#1E1E1E',
+                  color: '#FF5252',
+                  padding: '15px',
+                  borderRadius: theme.radius.sm,
+                  overflowX: 'auto',
+                  fontSize: '13px',
+                  fontFamily: "'Courier New', Courier, monospace",
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-all',
+                  margin: 0,
+                  maxHeight: '300px',
+                  border: '1px solid #333'
+                }}>
+                  {loadErrorDetails}
+                </pre>
+              </div>
+            )}
           </div>
         ) : articles.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '80px', color: theme.colors.textMuted }}>
