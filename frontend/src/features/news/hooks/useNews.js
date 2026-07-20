@@ -98,7 +98,7 @@ export const useNews = (token, onLogout) => {
     setCollectErrorDetails('');
     try {
       const token = localStorage.getItem('dashboard_token');
-      const apiBaseUrl = import.meta.env.VITE_API_URL || '/api/v1';
+      const apiBaseUrl = import.meta.env.VITE_API_URL || `${window.location.origin}/api/v1`;
       const targetQuery = `?limit=${collectionLimit}` + (date ? `&target_date=${date}` : '');
       
       const response = await fetch(`${apiBaseUrl}/news/collect${targetQuery}`, {
