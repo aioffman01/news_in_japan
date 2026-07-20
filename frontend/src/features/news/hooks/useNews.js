@@ -17,6 +17,7 @@ export const useNews = (token, onLogout) => {
   const [error, setError] = useState('');
   const [collecting, setCollecting] = useState(false);
   const [collectMessage, setCollectMessage] = useState('');
+  const [collectErrorDetails, setCollectErrorDetails] = useState('');
 
   // DB diagnostic states
   const [dbChecking, setDbChecking] = useState(false);
@@ -86,6 +87,7 @@ export const useNews = (token, onLogout) => {
   const handleCollect = async () => {
     setCollecting(true);
     setCollectMessage('수집 준비 중...');
+    setCollectErrorDetails('');
     try {
       const token = localStorage.getItem('dashboard_token');
       const apiBaseUrl = import.meta.env.VITE_API_URL || '/api/v1';
@@ -99,7 +101,14 @@ export const useNews = (token, onLogout) => {
       });
 
       if (!response.ok) {
-        throw new Error('API request failed');
+        let errorDetail = 'API request failed';
+        try {
+          const errData = await response.json();
+          errorDetail = errData.detail || JSON.stringify(errData);
+        } catch (_) {
+          errorDetail = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorDetail);
       }
 
       const reader = response.body.getReader();
@@ -116,7 +125,10 @@ export const useNews = (token, onLogout) => {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
-              if (data.message) {
+              if (data.status === 'error') {
+                setCollectMessage('오류가 발생하여 중단되었습니다.');
+                setCollectErrorDetails(data.stack_trace || data.message || '뉴스 수집 처리 중 내부 오류가 발생했습니다.');
+              } else if (data.message) {
                 setCollectMessage(data.message);
               }
             } catch (e) {
@@ -131,6 +143,7 @@ export const useNews = (token, onLogout) => {
     } catch (err) {
       console.error(err);
       setCollectMessage('수집 트리거 작업 중 에러가 발생했습니다.');
+      setCollectErrorDetails(err.message || err.toString());
     } finally {
       setCollecting(false);
     }
@@ -165,6 +178,7 @@ export const useNews = (token, onLogout) => {
     error,
     collecting,
     collectMessage,
+    collectErrorDetails,
     handleCollect,
     handleToggleStar,
     dbChecking,

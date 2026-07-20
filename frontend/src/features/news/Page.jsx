@@ -16,6 +16,7 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
     error,
     collecting,
     collectMessage,
+    collectErrorDetails,
     handleCollect,
     handleToggleStar,
     dbChecking,
@@ -413,6 +414,45 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
                 </pre>
               </div>
             )}
+          </div>
+        )}
+
+        {/* News Collection Diagnostic Error Card */}
+        {!collecting && collectErrorDetails && (
+          <div style={{
+            marginBottom: '30px',
+            padding: '20px',
+            borderRadius: theme.radius.md,
+            backgroundColor: '#FFEBEE',
+            border: '1px solid #E57373',
+            color: '#C62828',
+            boxShadow: theme.shadows.sm,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', fontSize: '16px', marginBottom: '15px' }}>
+              <span>⚠️</span>
+              <span>뉴스 수집 과정에서 오류가 감지되었습니다.</span>
+            </div>
+            <div>
+              <div style={{ fontWeight: '600', marginBottom: '8px', fontSize: '14px', color: '#B71C1C' }}>
+                🔧 뉴스 수집 실패 상세 오류 로그:
+              </div>
+              <pre style={{
+                backgroundColor: '#1E1E1E',
+                color: '#FF5252',
+                padding: '15px',
+                borderRadius: theme.radius.sm,
+                overflowX: 'auto',
+                fontSize: '13px',
+                fontFamily: "'Courier New', Courier, monospace",
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-all',
+                margin: 0,
+                maxHeight: '300px',
+                border: '1px solid #333'
+              }}>
+                {collectErrorDetails}
+              </pre>
+            </div>
           </div>
         )}
 
