@@ -233,12 +233,21 @@ def check_db_connection(
 @router.get("/version")
 def get_build_version():
     """
-    Get the application build version injected at deploy time.
+    Read build version information from the physical version.info file.
     """
     import os
-    return {
-        "version": os.getenv("BUILD_VERSION", "local-development")
-    }
+    current_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    version_file_path = os.path.join(current_dir, "version.info")
+    
+    if os.path.exists(version_file_path):
+        try:
+            with open(version_file_path, "r", encoding="utf-8") as f:
+                version_text = f.read().strip()
+                return {"version": version_text}
+        except Exception as e:
+            return {"version": f"Error reading version.info: {str(e)}"}
+            
+    return {"version": "local-development (version.info not found)"}
 
 
 

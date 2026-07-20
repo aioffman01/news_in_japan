@@ -33,8 +33,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend code
 COPY backend/ .
 
-ARG BUILD_VERSION="dev-unknown"
-ENV BUILD_VERSION=$BUILD_VERSION
+ARG BUILD_VERSION
+ENV BUILD_VERSION=${BUILD_VERSION:-"dev-unknown"}
 
 # Copy built frontend assets to FastAPI static folder
 # FastAPI main.py is configured to serve static assets from "/workspace/static"
