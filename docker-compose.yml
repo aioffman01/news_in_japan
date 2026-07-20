@@ -8,11 +8,10 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=sqlite:////data/news.db
+      - DATABASE_URL=postgresql://postgres:newsinjapan1234@db.ltcxrwkbmxdklbemcipf.supabase.co:5432/postgres
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-    volumes:
-      - db-data:/data
     restart: always
+
 
 volumes:
   db-data:
