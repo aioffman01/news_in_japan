@@ -221,5 +221,7 @@ export const useNews = (token, onLogout) => {
   };
 };
 
+export default useNews;
+
 
 
