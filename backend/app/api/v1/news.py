@@ -34,24 +34,31 @@ def read_news(
     if date:
         try:
             target_date = datetime.strptime(date, "%Y-%m-%d").date()
+            from datetime import time, timedelta
             if is_starred:
                 # Filter by entire month and year of the target date
                 import calendar
-                start_date = target_date.replace(day=1)
+                start_day = target_date.replace(day=1)
                 last_day = calendar.monthrange(target_date.year, target_date.month)[1]
-                end_date = target_date.replace(day=last_day)
+                end_day = target_date.replace(day=last_day)
+                
+                start_datetime = datetime.combine(start_day, time.min)
+                end_datetime = datetime.combine(end_day, time.max)
+                
                 query = query.filter(
-                    sa.func.date(News.published_at) >= start_date,
-                    sa.func.date(News.published_at) <= end_date
+                    News.published_at >= start_datetime,
+                    News.published_at <= end_datetime
                 )
             else:
                 # Perform custom filtering on database to fetch articles from target_date - 2 days to target_date
                 # to handle timezone shifts and publication gaps.
-                from datetime import timedelta
-                start_date = target_date - timedelta(days=2)
+                start_day = target_date - timedelta(days=2)
+                start_datetime = datetime.combine(start_day, time.min)
+                end_datetime = datetime.combine(target_date, time.max)
+                
                 query = query.filter(
-                    sa.func.date(News.published_at) >= start_date,
-                    sa.func.date(News.published_at) <= target_date
+                    News.published_at >= start_datetime,
+                    News.published_at <= end_datetime
                 )
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Expected YYYY-MM-DD.")
