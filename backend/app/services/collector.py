@@ -363,12 +363,12 @@ class NewsCollectorService:
         processed_count = 0
         import time
         for idx, article in enumerate(candidate_articles[:limit]):
+            article_title = article['title_ja'][:20]
             try:
-                yield {"status": "progress", "message": f"[{idx+1}/{min(limit, total_candidates)}] 기사 요약 및 한국어 번역 중: {article['title_ja'][:30]}..."}
+                yield {"status": "progress", "message": f"[{idx+1}/{min(limit, total_candidates)}] 기사 번역 중: {article_title}..."}
                 
                 # Add delay only if we are using Gemini API to respect free tier
                 if self.initialized:
-
                     time.sleep(4)
 
                 title_ko, summary_ko = self.summarize_and_translate_with_gemini(
@@ -383,14 +383,22 @@ class NewsCollectorService:
                     publisher=article["publisher"],
                     published_at=article["published_at"]
                 )
+                
+                # DB insert attempt
+                yield {"status": "progress", "message": f"[{idx+1}] 데이터베이스에 등록을 시도하는 중..."}
                 db_obj = crud_news.create(db, obj_in=news_in)
                 db.commit()
                 db.refresh(db_obj)
                 processed_count += 1
-                yield {"status": "progress", "message": f"[{idx+1}] 데이터베이스에 저장 성공: {title_ko[:20]}..."}
+                
+                # Success notification
+                yield {"status": "progress", "message": f"🟢 [{idx+1}] DB 정상 등록 성공: {title_ko[:20]}..."}
             except Exception as e:
                 db.rollback()
+                err_msg = str(e).split('\n')[0]
                 logger.error(f"Error processing article '{article['title_ja']}': {e}")
+                # Failure notification
+                yield {"status": "progress", "message": f"🔴 [{idx+1}] DB 등록 실패 (이유: {err_msg[:30]}): {article_title}..."}
 
         # Save collection history
         try:
