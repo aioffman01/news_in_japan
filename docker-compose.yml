@@ -11,8 +11,9 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     environment:
-      - DATABASE_URL=postgresql://postgres:newsinjapan1234@db.ltcxrwkbmxdklbemcipf.supabase.co:5432/postgres
+      - DATABASE_URL=postgresql://postgres:newsinjapan1234@db.ltcxrwkbmxdklbemcipf.supabase.co:6543/postgres
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+
     networks:
       - app-net
     restart: always
