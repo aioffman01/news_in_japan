@@ -230,5 +230,16 @@ def check_db_connection(
         }
 
 
+@router.get("/version")
+def get_build_version():
+    """
+    Get the application build version injected at deploy time.
+    """
+    import os
+    return {
+        "version": os.getenv("BUILD_VERSION", "local-development")
+    }
+
+
 
 

@@ -24,7 +24,8 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
     dbStatus,
     dbMessage,
     dbErrorDetails,
-    handleCheckDb
+    handleCheckDb,
+    buildVersion
   } = useNews(token, onLogout);
 
   // Initialize year and month local selections
@@ -560,6 +561,18 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
           </div>
         )}
       </main>
+      
+      {/* Footer Version Info */}
+      <footer style={{
+        textAlign: 'center',
+        padding: '20px',
+        marginTop: '40px',
+        borderTop: `1px solid ${theme.colors.borderColor}`,
+        fontSize: '12px',
+        color: theme.colors.textMuted
+      }}>
+        <span>NewsInJapan Dashboard | Build Version: {buildVersion}</span>
+      </footer>
     </div>
   );
 };

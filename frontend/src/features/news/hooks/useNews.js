@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchNews, triggerCollection, toggleStar, checkCollectionStatus, checkDbStatus } from '../../../api/news';
+import { fetchBuildVersion } from '../../../api/client';
 
 export const useNews = (token, onLogout) => {
   const getYesterdayDateString = () => {
@@ -19,6 +20,7 @@ export const useNews = (token, onLogout) => {
   const [collecting, setCollecting] = useState(false);
   const [collectMessage, setCollectMessage] = useState('');
   const [collectErrorDetails, setCollectErrorDetails] = useState('');
+  const [buildVersion, setBuildVersion] = useState('로딩 중...');
 
   const isAlreadyCollected = dbCollectedCount >= collectionLimit;
 
@@ -84,6 +86,16 @@ export const useNews = (token, onLogout) => {
     try {
       const statusData = await checkCollectionStatus(token, date);
       setDbCollectedCount(statusData.collected_count || 0);
+      
+      // Load build version dynamically from server
+      try {
+        const verData = await fetchBuildVersion(token);
+        if (verData && verData.version) {
+          setBuildVersion(verData.version);
+        }
+      } catch (verErr) {
+        console.error('Failed to fetch build version:', verErr);
+      }
     } catch (err) {
       console.error('Failed to check collection status:', err);
     }
@@ -203,12 +215,11 @@ export const useNews = (token, onLogout) => {
     dbStatus,
     dbMessage,
     dbErrorDetails,
+    buildVersion,
     handleCheckDb,
     refresh: loadNews
   };
 };
-
-export default useNews;
 
 
 

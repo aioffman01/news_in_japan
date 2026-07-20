@@ -24,5 +24,14 @@ apiClient.interceptors.response.use(
   }
 );
 
+export const fetchBuildVersion = async (token) => {
+  const response = await apiClient.get('/news/version', {
+    headers: {
+      'X-Dashboard-Token': token
+    }
+  });
+  return response.data;
+};
+
 export default apiClient;
 
