@@ -65,16 +65,16 @@ def read_news(
             raise HTTPException(status_code=400, detail="Invalid date format. Expected YYYY-MM-DD.")
     else:
         # Default fallback: return most recent articles ordered by published date
-        return query.order_by(News.is_starred.desc(), News.published_at.desc()).limit(limit).all()
+        return query.order_by(News.published_at.desc()).limit(limit).all()
 
-    results = query.order_by(News.is_starred.desc(), News.published_at.desc()).all()
+    results = query.order_by(News.published_at.desc()).all()
     
     # Fail-safe Fallback: If filtering by date returns 0 articles but database contains news,
     # fallback to return the most recent 20 articles so the user is not greeted with a completely blank screen.
     if not results and not is_starred:
         all_news_count = db.query(News).count()
         if all_news_count > 0:
-            return db.query(News).order_by(News.is_starred.desc(), News.published_at.desc()).limit(20).all()
+            return db.query(News).order_by(News.published_at.desc()).limit(20).all()
             
     return results
 

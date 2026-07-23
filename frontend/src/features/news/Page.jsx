@@ -41,6 +41,9 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
   // Track active sub-mode for radio selection: 'auto-collect' | 'csv-import'
   const [activeSubMode, setActiveSubMode] = React.useState('auto-collect');
 
+  // Track active main navigation tab: 'view' | 'manage'
+  const [activeMainTab, setActiveMainTab] = React.useState('view');
+
   // Track selected CSV file for upload button action
   const [selectedCSVFile, setSelectedCSVFile] = React.useState(null);
 
@@ -246,53 +249,150 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
         </button>
       </header>
       <main style={contentStyle}>
-        {/* Category Tabs */}
+              {/* Top-Level Main Navigation Tabs */}
         <div style={{
           display: 'flex',
-          borderBottom: `2px solid ${theme.colors.borderColor}`,
+          borderBottom: `3px solid ${theme.colors.borderColor}`,
           marginBottom: '30px',
-          gap: '10px'
+          gap: '15px'
         }}>
           <button
-            onClick={() => setOnlyStarred(false)}
+            onClick={() => setActiveMainTab('view')}
             style={{
-              padding: '12px 24px',
+              padding: '14px 28px',
               backgroundColor: 'transparent',
-              color: !onlyStarred ? theme.colors.primary : theme.colors.textMuted,
+              color: activeMainTab === 'view' ? theme.colors.primary : theme.colors.textMuted,
               border: 'none',
-              borderBottom: !onlyStarred ? `3px solid ${theme.colors.primary}` : '3px solid transparent',
-              fontWeight: '700',
-              fontSize: '16px',
+              borderBottom: activeMainTab === 'view' ? `4px solid ${theme.colors.primary}` : '4px solid transparent',
+              fontWeight: '800',
+              fontSize: '18px',
               cursor: 'pointer',
               transition: 'all 0.2s',
-              marginBottom: '-2px'
+              marginBottom: '-3px'
             }}
           >
-            📰 오늘의 뉴스
+            🔍 뉴스 조회
           </button>
           <button
-            onClick={() => setOnlyStarred(true)}
+            onClick={() => setActiveMainTab('manage')}
             style={{
-              padding: '12px 24px',
+              padding: '14px 28px',
               backgroundColor: 'transparent',
-              color: onlyStarred ? theme.colors.primary : theme.colors.textMuted,
+              color: activeMainTab === 'manage' ? theme.colors.primary : theme.colors.textMuted,
               border: 'none',
-              borderBottom: onlyStarred ? `3px solid ${theme.colors.primary}` : '3px solid transparent',
-              fontWeight: '700',
-              fontSize: '16px',
+              borderBottom: activeMainTab === 'manage' ? `4px solid ${theme.colors.primary}` : '4px solid transparent',
+              fontWeight: '800',
+              fontSize: '18px',
               cursor: 'pointer',
               transition: 'all 0.2s',
-              marginBottom: '-2px'
+              marginBottom: '-3px'
             }}
           >
-            ★ 주요 뉴스 (이달)
+            ⚙️ 수집 및 등록
           </button>
         </div>
 
+        {/* 1. NEWS SEARCH & VIEW TAB CONTENT */}
+        {activeMainTab === 'view' && (
+          <>
+            {/* View Sub-Tabs: Today's News vs Starred */}
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              marginBottom: '20px'
+            }}>
+              <button
+                onClick={() => setOnlyStarred(false)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: theme.radius.sm,
+                  backgroundColor: !onlyStarred ? theme.colors.primaryLight : '#ffffff',
+                  color: !onlyStarred ? theme.colors.primary : theme.colors.textMuted,
+                  border: `1px solid ${!onlyStarred ? theme.colors.primary : theme.colors.borderColor}`,
+                  fontWeight: '700',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                📰 오늘의 뉴스
+              </button>
+              <button
+                onClick={() => setOnlyStarred(true)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: theme.radius.sm,
+                  backgroundColor: onlyStarred ? theme.colors.primaryLight : '#ffffff',
+                  color: onlyStarred ? theme.colors.primary : theme.colors.textMuted,
+                  border: `1px solid ${onlyStarred ? theme.colors.primary : theme.colors.borderColor}`,
+                  fontWeight: '700',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                ★ 주요 뉴스 (이달)
+              </button>
+            </div>
 
+            {/* Filter controls based on Starred selection */}
+            <div style={controlsStyle}>
+              {!onlyStarred ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontWeight: '600', color: theme.colors.textMain }}>조회 날짜 선택:</span>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    max={new Date().toISOString().split('T')[0]}
+                    style={dateInputStyle}
+                  />
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap', width: '100%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontWeight: '600', color: theme.colors.textMain }}>조회 년월:</span>
+                    <select
+                      value={selectedYear}
+                      onChange={(e) => setSelectedYear(e.target.value)}
+                      style={dateInputStyle}
+                    >
+                      {['2024', '2025', '2026'].map((yr) => (
+                        <option key={yr} value={yr}>{yr}년</option>
+                      ))}
+                    </select>
+                    <select
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(e.target.value)}
+                      style={dateInputStyle}
+                    >
+                      {Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0')).map((mon) => (
+                        <option key={mon} value={mon}>{parseInt(mon, 10)}월</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={handleMonthConfirm}
+                      style={{
+                        ...collectButtonStyle,
+                        backgroundColor: theme.colors.primary,
+                        cursor: 'pointer',
+                      }}
+                      onMouseOver={(e) => e.target.style.opacity = '0.9'}
+                      onMouseOut={(e) => e.target.style.opacity = '1'}
+                    >
+                      조회
+                    </button>
+                  </div>
+                  <div style={{ marginLeft: 'auto', fontSize: '14px', color: theme.colors.textMuted, fontWeight: '500' }}>
+                    ✨ {selectedYear}년 {parseInt(selectedMonth, 10)}월의 주요 뉴스 모아보기
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
-        <div style={controlsStyle}>
-          {!onlyStarred ? (
+        {/* 2. MANAGEMENT: COLLECT & REGISTER TAB CONTENT */}
+        {activeMainTab === 'manage' && (
+          <div style={controlsStyle}>
             <div style={{ width: '100%' }}>
               {/* Radio Button Mode Selector */}
               <div style={{ 
@@ -333,7 +433,7 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
                 {activeSubMode === 'auto-collect' ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontWeight: '600', color: theme.colors.textMain }}>발행일 조회/수집:</span>
+                      <span style={{ fontWeight: '600', color: theme.colors.textMain }}>수집 일자:</span>
                       <input
                         type="date"
                         value={date}
@@ -430,16 +530,6 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
                     >
                       {csvUploading ? '등록 중...' : '뉴스 등록'}
                     </button>
-                    <div style={{ marginLeft: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontWeight: '600', color: theme.colors.textMuted }}>조회 날짜:</span>
-                      <input
-                        type="date"
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        max={new Date().toISOString().split('T')[0]}
-                        style={{ ...dateInputStyle, height: '42px', boxSizing: 'border-box', padding: '5px 10px' }}
-                      />
-                    </div>
                   </div>
                 )}
                 <div>
@@ -463,47 +553,8 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
                 </div>
               </div>
             </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap', width: '100%' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontWeight: '600', color: theme.colors.textMain }}>조회 년월:</span>
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(e.target.value)}
-                  style={dateInputStyle}
-                >
-                  {['2024', '2025', '2026'].map((yr) => (
-                    <option key={yr} value={yr}>{yr}년</option>
-                  ))}
-                </select>
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  style={dateInputStyle}
-                >
-                  {Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0')).map((mon) => (
-                    <option key={mon} value={mon}>{parseInt(mon, 10)}월</option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleMonthConfirm}
-                  style={{
-                    ...collectButtonStyle,
-                    backgroundColor: theme.colors.primary,
-                    cursor: 'pointer',
-                  }}
-                  onMouseOver={(e) => e.target.style.opacity = '0.9'}
-                  onMouseOut={(e) => e.target.style.opacity = '1'}
-                >
-                  조회
-                </button>
-              </div>
-              <div style={{ marginLeft: 'auto', fontSize: '14px', color: theme.colors.textMuted, fontWeight: '500' }}>
-                ✨ {selectedYear}년 {parseInt(selectedMonth, 10)}월의 주요 뉴스 모아보기
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
 
 
@@ -717,45 +768,75 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
         ) : (
 
           <div style={gridStyle}>
-            {articles.map((article) => (
-              <div
-                key={article.id}
-                style={cardStyle}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.boxShadow = '0 12px 20px rgba(0,0,0,0.08)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = theme.shadows.md;
-                }}
-              >
-                <button
-                  onClick={() => handleToggleStar(article.id)}
-                  style={getStarIconButtonStyle(article.is_starred)}
+            {articles.map((article) => {
+              // Parse dates to compare YYYY-MM-DD
+              const articleDateStr = new Date(article.published_at).toISOString().split('T')[0];
+              const isTodayArticle = articleDateStr === date;
+
+              const highlightedCardStyle = isTodayArticle ? {
+                ...cardStyle,
+                backgroundColor: theme.colors.primaryLight,
+                border: `2px solid ${theme.colors.primary}`,
+              } : cardStyle;
+
+              return (
+                <div
+                  key={article.id}
+                  style={highlightedCardStyle}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 12px 20px rgba(0,0,0,0.08)';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = theme.shadows.md;
+                  }}
                 >
-                  {article.is_starred ? '★' : '☆'}
-                </button>
-
-
-                <div>
-                  <div style={cardTitleStyle}>{article.title_ko}</div>
-                  <div style={cardJaTitleStyle}>{article.title_ja}</div>
-                  <p style={cardSummaryStyle}>{article.summary_ko}</p>
-                </div>
-                <div style={metaStyle}>
-                  <span>{article.publisher} | {new Date(article.published_at).toLocaleDateString()}</span>
-                  <a
-                    href={article.original_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={linkStyle}
+                  <button
+                    onClick={() => handleToggleStar(article.id)}
+                    style={getStarIconButtonStyle(article.is_starred)}
                   >
-                    원문 보기 ↗
-                  </a>
+                    {article.is_starred ? '★' : '☆'}
+                  </button>
+
+                  {/* Today News Highlight Badge */}
+                  {isTodayArticle && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '15px',
+                      left: '20px',
+                      backgroundColor: theme.colors.accent,
+                      color: '#ffffff',
+                      padding: '4px 10px',
+                      borderRadius: theme.radius.sm,
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      letterSpacing: '0.5px',
+                      boxShadow: theme.shadows.sm,
+                    }}>
+                      🔥 오늘 뉴스
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: isTodayArticle ? '25px' : '0px' }}>
+                    <div style={cardTitleStyle}>{article.title_ko}</div>
+                    <div style={cardJaTitleStyle}>{article.title_ja}</div>
+                    <p style={cardSummaryStyle}>{article.summary_ko}</p>
+                  </div>
+                  <div style={metaStyle}>
+                    <span>{article.publisher} | {new Date(article.published_at).toLocaleDateString()}</span>
+                    <a
+                      href={article.original_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={linkStyle}
+                    >
+                      원문 보기 ↗
+                    </a>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
