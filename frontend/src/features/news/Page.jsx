@@ -36,6 +36,17 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
   const initialDate = date ? new Date(date) : new Date();
   const [selectedYear, setSelectedYear] = React.useState(initialDate.getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = React.useState((initialDate.getMonth() + 1).toString().padStart(2, '0'));
+  
+  // Track selected CSV file for upload button action
+  const [selectedCSVFile, setSelectedCSVFile] = React.useState(null);
+
+  // Clear selected file when upload finishes
+  React.useEffect(() => {
+    if (csvMessage && !csvUploading && csvMessage.includes('완료')) {
+      setSelectedCSVFile(null);
+    }
+  }, [csvMessage, csvUploading]);
+
 
   // Update selected year and month when hook date changes
   React.useEffect(() => {
@@ -445,8 +456,7 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
                 disabled={csvUploading}
                 onChange={(e) => {
                   if (e.target.files && e.target.files[0]) {
-                    handleUploadCSV(e.target.files[0]);
-                    e.target.value = ''; // Reset file input
+                    setSelectedCSVFile(e.target.files[0]);
                   }
                 }}
                 style={{
@@ -458,6 +468,32 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
                   cursor: csvUploading ? 'default' : 'pointer'
                 }}
               />
+              <button
+                disabled={!selectedCSVFile || csvUploading}
+                onClick={() => {
+                  if (selectedCSVFile) {
+                    handleUploadCSV(selectedCSVFile);
+                  }
+                }}
+                style={{
+                  ...collectButtonStyle,
+                  backgroundColor: (!selectedCSVFile || csvUploading) ? '#B0BEC5' : '#2E7D32',
+                  cursor: (!selectedCSVFile || csvUploading) ? 'not-allowed' : 'pointer',
+                  color: '#ffffff',
+                  fontSize: '14px',
+                  padding: '10px 20px',
+                  fontWeight: '600'
+                }}
+                onMouseOver={(e) => {
+                  if (selectedCSVFile && !csvUploading) e.target.style.opacity = '0.9';
+                }}
+                onMouseOut={(e) => {
+                  if (selectedCSVFile && !csvUploading) e.target.style.opacity = '1';
+                }}
+              >
+                {csvUploading ? '등록 중...' : '뉴스 등록'}
+              </button>
+
               {csvMessage && (
                 <div style={{ 
                   fontSize: '14px', 
@@ -469,11 +505,17 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
                 </div>
               )}
             </div>
+            {selectedCSVFile && (
+              <div style={{ marginTop: '8px', fontSize: '13px', color: '#1B5E20', fontWeight: '600' }}>
+                📁 선택된 파일: {selectedCSVFile.name} ({Math.round(selectedCSVFile.size / 1024)} KB) - 준비 완료
+              </div>
+            )}
             <div style={{ marginTop: '10px', fontSize: '12px', color: theme.colors.textMuted }}>
               * 지원하는 필수 열 이름(BOM 대응): <b>기사제목, 요약, 출처, 원본 link, 발행일</b> (URL 중복 방지 기능 제공)
             </div>
           </div>
         )}
+
 
 
         {/* News Collection Diagnostic Error Card */}
