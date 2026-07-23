@@ -30,10 +30,21 @@ class Settings(BaseSettings):
         "日経", "日本経済新聞", "朝日", "読売", "毎日", "産経"
     ]
 
+    # Port & Host config mapped from .env
+    PORT: int = 9001
+    BACKEND_HOST: str = "0.0.0.0"
+    BACKEND_PORT: int = 9001
+    
+    # Auth secrets mapped from .env
+    JWT_SECRET: str = "default_secret"
+    JWT_ALGORITHM: str = "HS256"
+    DASHBOARD_PASSWORD: str = "news1234"
+
     class Config:
         case_sensitive = True
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 settings = Settings()
 
