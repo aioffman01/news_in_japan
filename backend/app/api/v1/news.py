@@ -52,8 +52,8 @@ def read_news(
                     News.published_at <= end_datetime
                 )
             else:
-                # Perform custom filtering on database to fetch articles from target_date - 2 days to target_date
-                start_day = target_date - timedelta(days=2)
+                # Perform custom filtering on database to fetch articles from target_date - 6 days (1 week) to target_date
+                start_day = target_date - timedelta(days=6)
                 start_datetime = datetime.combine(start_day, time.min).replace(tzinfo=timezone.utc)
                 end_datetime = datetime.combine(target_date, time.max).replace(tzinfo=timezone.utc)
                 
