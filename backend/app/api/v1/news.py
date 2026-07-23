@@ -277,7 +277,7 @@ def import_news_from_csv(
     import dateutil.parser
     from app.models.news import News
     from app.schemas.news import NewsCreate
-    from app.crud.news import crud_news
+    from app.crud.news import news as crud_news
 
     # Check file extension
     if not file.filename.endswith('.csv'):
