@@ -769,16 +769,21 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
 
           <div style={gridStyle}>
             {articles.map((article) => {
-              // Calculate time difference in hours from now
-              const now = new Date();
-              const publishedTime = new Date(article.published_at);
-              const diffMs = now.getTime() - publishedTime.getTime();
-              const diffHours = diffMs / (1000 * 60 * 60);
+              // Calculate today and yesterday in YYYY-MM-DD format using client system time
+              const todayObj = new Date();
+              const todayStr = todayObj.toISOString().split('T')[0];
 
-              const isTodayNews = diffHours >= 0 && diffHours <= 24;
-              const isYesterdayNews = diffHours > 24 && diffHours <= 48;
+              const yesterdayObj = new Date();
+              yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+              const yesterdayStr = yesterdayObj.toISOString().split('T')[0];
 
-              // Apply distinct highlight styles depending on elapsed time
+              // Parse article date to compare YYYY-MM-DD
+              const articleDateStr = new Date(article.published_at).toISOString().split('T')[0];
+
+              const isTodayNews = articleDateStr === todayStr;
+              const isYesterdayNews = articleDateStr === yesterdayStr;
+
+              // Apply distinct highlight styles depending on calendar date
               let highlightedCardStyle = cardStyle;
               if (isTodayNews) {
                 highlightedCardStyle = {
