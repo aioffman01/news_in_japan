@@ -311,6 +311,7 @@ def import_news_from_csv(
         skip_count = 0
         error_count = 0
         error_logs = []
+        processed_keys = set() # Track (date, url) pairs to prevent duplicates within the uploaded file
 
         for line_num, row in enumerate(reader, start=2):
             if not row or len(row) < len(col_indices):
@@ -328,12 +329,7 @@ def import_news_from_csv(
                     error_logs.append(f"라인 {line_num}: 기사제목 또는 원본 link가 누락되었습니다.")
                     continue
 
-                # Deduplicate URL in DB
-                if crud_news.get_by_url(db, url=original_url):
-                    skip_count += 1
-                    continue
-
-                # Parse date
+                # Parse date first to check date-specific duplicates
                 try:
                     published_at = dateutil.parser.parse(published_at_raw)
                     if published_at.tzinfo is None:
@@ -342,6 +338,21 @@ def import_news_from_csv(
                     # Fallback to current time if parsing fails
                     from datetime import datetime
                     published_at = datetime.now(timezone.utc)
+
+                # Format date string for comparison (YYYY-MM-DD)
+                date_key = published_at.strftime("%Y-%m-%d")
+                dedup_key = (date_key, original_url)
+
+                # 1. Deduplicate internally within the CSV file for the same date
+                if dedup_key in processed_keys:
+                    skip_count += 1
+                    continue
+                processed_keys.add(dedup_key)
+
+                # 2. Deduplicate against existing DB entries
+                if crud_news.get_by_url(db, url=original_url):
+                    skip_count += 1
+                    continue
 
                 news_in = NewsCreate(
                     title_ja=f"[CSV] {title_ko}", # Set prefix to distinguish from RSS collector
@@ -356,6 +367,7 @@ def import_news_from_csv(
             except Exception as row_err:
                 error_count += 1
                 error_logs.append(f"라인 {line_num}: 데이터베이스 저장 에러 (원인: {str(row_err).split(chr(10))[0]})")
+
 
         # Commit all successful entries
         if success_count > 0:
