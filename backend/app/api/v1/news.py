@@ -261,6 +261,117 @@ def check_db_connection(
 
 
 
+@router.post("/import-csv")
+def import_news_from_csv(
+    file: UploadFile = File(..., description="CSV File containing news data to import"),
+    db: Session = Depends(get_db),
+    _auth: bool = Depends(verify_token)
+):
+    """
+    Import articles from a CSV file. 
+    Required columns: 기사제목, 요약, 출처, 원본 link, 발행일
+    """
+    import csv
+    import io
+    from datetime import timezone
+    import dateutil.parser
+    from app.models.news import News
+    from app.schemas.news import NewsCreate
+    from app.crud.news import crud_news
+
+    # Check file extension
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Only CSV files are supported.")
+
+    try:
+        contents = file.file.read()
+        buffer = io.StringIO(contents.decode('utf-8-sig')) # Handle potential BOM
+        reader = csv.reader(buffer)
+        
+        # Read header row
+        header = next(reader, None)
+        if not header:
+            raise HTTPException(status_code=400, detail="The uploaded CSV file is empty.")
+
+        # Map headers to column indices
+        expected_cols = ["기사제목", "요약", "출처", "원본 link", "발행일"]
+        col_indices = {}
+        for col_name in expected_cols:
+            try:
+                # Find matching column (exact or partial match)
+                index = next(i for i, h in enumerate(header) if col_name in h.replace(" ", ""))
+                col_indices[col_name] = index
+            except StopIteration:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Required column '{col_name}' is missing in CSV header. Found: {', '.join(header)}"
+                )
+
+        success_count = 0
+        skip_count = 0
+        error_count = 0
+        error_logs = []
+
+        for line_num, row in enumerate(reader, start=2):
+            if not row or len(row) < len(col_indices):
+                continue # Skip empty rows
+
+            try:
+                title_ko = row[col_indices["기사제목"]].strip()
+                summary_ko = row[col_indices["요약"]].strip()
+                publisher = row[col_indices["출처"]].strip()
+                original_url = row[col_indices["원본 link"]].strip()
+                published_at_raw = row[col_indices["발행일"]].strip()
+
+                if not title_ko or not original_url:
+                    error_count += 1
+                    error_logs.append(f"라인 {line_num}: 기사제목 또는 원본 link가 누락되었습니다.")
+                    continue
+
+                # Deduplicate URL in DB
+                if crud_news.get_by_url(db, url=original_url):
+                    skip_count += 1
+                    continue
+
+                # Parse date
+                try:
+                    published_at = dateutil.parser.parse(published_at_raw)
+                    if published_at.tzinfo is None:
+                        published_at = published_at.replace(tzinfo=timezone.utc)
+                except Exception:
+                    # Fallback to current time if parsing fails
+                    from datetime import datetime
+                    published_at = datetime.now(timezone.utc)
+
+                news_in = NewsCreate(
+                    title_ja=f"[CSV] {title_ko}", # Set prefix to distinguish from RSS collector
+                    title_ko=title_ko,
+                    summary_ko=summary_ko if summary_ko else "설명 없음",
+                    original_url=original_url,
+                    publisher=publisher if publisher else "외부 수집",
+                    published_at=published_at
+                )
+                crud_news.create(db, obj_in=news_in)
+                success_count += 1
+            except Exception as row_err:
+                error_count += 1
+                error_logs.append(f"라인 {line_num}: 데이터베이스 저장 에러 (원인: {str(row_err).split(chr(10))[0]})")
+
+        # Commit all successful entries
+        if success_count > 0:
+            db.commit()
+
+        return {
+            "status": "ok",
+            "message": f"CSV 파일 처리가 완료되었습니다.\n- 성공: {success_count}건\n- 중복 제외(스킵): {skip_count}건\n- 에러: {error_count}건",
+            "errors": error_logs[:20] # Limit logs to first 20 errors
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"CSV 파일 처리 중 오류 발생: {str(e)}")
+
+
 @router.get("/version")
 def get_build_version():
     """
@@ -279,6 +390,7 @@ def get_build_version():
             return {"version": f"Error reading version.info: {str(e)}"}
             
     return {"version": "local-development (version.info not found)"}
+
 
 
 

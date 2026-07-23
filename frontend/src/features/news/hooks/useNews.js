@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { fetchNews, triggerCollection, toggleStar, checkCollectionStatus, checkDbStatus } from '../../../api/news';
+import { fetchNews, triggerCollection, toggleStar, checkCollectionStatus, checkDbStatus, importCSV } from '../../../api/news';
 import { fetchBuildVersion } from '../../../api/client';
+
 
 export const useNews = (token, onLogout) => {
   const getYesterdayDateString = () => {
@@ -29,6 +30,28 @@ export const useNews = (token, onLogout) => {
   const [dbStatus, setDbStatus] = useState('idle'); // 'idle' | 'success' | 'error'
   const [dbMessage, setDbMessage] = useState('');
   const [dbErrorDetails, setDbErrorDetails] = useState('');
+
+  // CSV Import States
+  const [csvUploading, setCsvUploading] = useState(false);
+  const [csvMessage, setCsvMessage] = useState('');
+
+  const handleUploadCSV = async (file) => {
+    if (!file) return;
+    setCsvUploading(true);
+    setCsvMessage('CSV 파일 업로드 및 분석 중...');
+    try {
+      const res = await importCSV(file, token);
+      setCsvMessage(res.message);
+      loadNews();
+    } catch (err) {
+      console.error(err);
+      const errMsg = err.response?.data?.detail || err.message || err.toString();
+      setCsvMessage(`오류 발생: ${errMsg}`);
+    } finally {
+      setCsvUploading(false);
+    }
+  };
+
 
   const handleCheckDb = async () => {
     setDbChecking(true);
@@ -218,6 +241,9 @@ export const useNews = (token, onLogout) => {
     dbErrorDetails,
     buildVersion,
     handleCheckDb,
+    csvUploading,
+    csvMessage,
+    handleUploadCSV,
     refresh: loadNews
   };
 };

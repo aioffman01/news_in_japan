@@ -48,6 +48,20 @@ export const checkDbStatus = async (token) => {
   return response.data;
 };
 
+export const importCSV = async (file, token) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const response = await apiClient.post('/news/import-csv', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      'X-Dashboard-Token': token
+    }
+  });
+  return response.data;
+};
+
+
 
 
 

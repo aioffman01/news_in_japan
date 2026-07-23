@@ -25,8 +25,12 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
     dbMessage,
     dbErrorDetails,
     handleCheckDb,
-    buildVersion
+    buildVersion,
+    csvUploading,
+    csvMessage,
+    handleUploadCSV
   } = useNews(token, onLogout);
+
 
   // Initialize year and month local selections
   const initialDate = date ? new Date(date) : new Date();
@@ -420,6 +424,57 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
             )}
           </div>
         )}
+
+        {/* CSV Bulk Import Card */}
+        {!onlyStarred && (
+          <div style={{
+            marginBottom: '30px',
+            padding: '20px',
+            borderRadius: theme.radius.md,
+            backgroundColor: theme.colors.bgCard,
+            border: `1px solid ${theme.colors.borderColor}`,
+            boxShadow: theme.shadows.sm,
+          }}>
+            <div style={{ fontWeight: '700', fontSize: '16px', color: theme.colors.textMain, marginBottom: '15px' }}>
+              📂 CSV 기사 파일 일괄 업로드
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+              <input
+                type="file"
+                accept=".csv"
+                disabled={csvUploading}
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    handleUploadCSV(e.target.files[0]);
+                    e.target.value = ''; // Reset file input
+                  }
+                }}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: theme.radius.sm,
+                  border: `1px solid ${theme.colors.borderColor}`,
+                  fontSize: '14px',
+                  backgroundColor: '#ffffff',
+                  cursor: csvUploading ? 'default' : 'pointer'
+                }}
+              />
+              {csvMessage && (
+                <div style={{ 
+                  fontSize: '14px', 
+                  color: csvMessage.includes('오류') ? '#C62828' : theme.colors.primary, 
+                  fontWeight: '600',
+                  whiteSpace: 'pre-line'
+                }}>
+                  {csvUploading ? '⏳ ' : '🔔 '} {csvMessage}
+                </div>
+              )}
+            </div>
+            <div style={{ marginTop: '10px', fontSize: '12px', color: theme.colors.textMuted }}>
+              * 지원하는 필수 열 이름(BOM 대응): <b>기사제목, 요약, 출처, 원본 link, 발행일</b> (URL 중복 방지 기능 제공)
+            </div>
+          </div>
+        )}
+
 
         {/* News Collection Diagnostic Error Card */}
         {!collecting && collectErrorDetails && (
