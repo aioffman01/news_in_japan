@@ -769,16 +769,23 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
 
           <div style={gridStyle}>
             {articles.map((article) => {
-              // Calculate today and yesterday in YYYY-MM-DD format using client system time
+              // Extract local calendar date without UTC timezone offset
+              const getLocalDateString = (d) => {
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+              };
+
               const todayObj = new Date();
-              const todayStr = todayObj.toISOString().split('T')[0];
+              const todayStr = getLocalDateString(todayObj);
 
               const yesterdayObj = new Date();
               yesterdayObj.setDate(yesterdayObj.getDate() - 1);
-              const yesterdayStr = yesterdayObj.toISOString().split('T')[0];
+              const yesterdayStr = getLocalDateString(yesterdayObj);
 
-              // Parse article date to compare YYYY-MM-DD
-              const articleDateStr = new Date(article.published_at).toISOString().split('T')[0];
+              // Parse article date to compare local YYYY-MM-DD
+              const articleDateStr = getLocalDateString(new Date(article.published_at));
 
               const isTodayNews = articleDateStr === todayStr;
               const isYesterdayNews = articleDateStr === yesterdayStr;
