@@ -37,6 +37,9 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
   const [selectedYear, setSelectedYear] = React.useState(initialDate.getFullYear().toString());
   const [selectedMonth, setSelectedMonth] = React.useState((initialDate.getMonth() + 1).toString().padStart(2, '0'));
   
+  // Track active sub-tab: 'news' | 'auto-collect' | 'csv-import'
+  const [activeSubTab, setActiveSubTab] = React.useState('news');
+
   // Track selected CSV file for upload button action
   const [selectedCSVFile, setSelectedCSVFile] = React.useState(null);
 
@@ -46,6 +49,7 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
       setSelectedCSVFile(null);
     }
   }, [csvMessage, csvUploading]);
+
 
 
   // Update selected year and month when hook date changes
@@ -240,24 +244,26 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
           로그아웃
         </button>
       </header>
-
-
       <main style={contentStyle}>
         {/* Category Tabs */}
         <div style={{
           display: 'flex',
           borderBottom: `2px solid ${theme.colors.borderColor}`,
           marginBottom: '30px',
-          gap: '10px'
+          gap: '10px',
+          flexWrap: 'wrap'
         }}>
           <button
-            onClick={() => setOnlyStarred(false)}
+            onClick={() => {
+              setOnlyStarred(false);
+              setActiveSubTab('news');
+            }}
             style={{
               padding: '12px 24px',
               backgroundColor: 'transparent',
-              color: !onlyStarred ? theme.colors.primary : theme.colors.textMuted,
+              color: activeSubTab === 'news' ? theme.colors.primary : theme.colors.textMuted,
               border: 'none',
-              borderBottom: !onlyStarred ? `3px solid ${theme.colors.primary}` : '3px solid transparent',
+              borderBottom: activeSubTab === 'news' ? `3px solid ${theme.colors.primary}` : '3px solid transparent',
               fontWeight: '700',
               fontSize: '16px',
               cursor: 'pointer',
@@ -268,13 +274,16 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
             📰 오늘의 뉴스
           </button>
           <button
-            onClick={() => setOnlyStarred(true)}
+            onClick={() => {
+              setOnlyStarred(true);
+              setActiveSubTab('starred');
+            }}
             style={{
               padding: '12px 24px',
               backgroundColor: 'transparent',
-              color: onlyStarred ? theme.colors.primary : theme.colors.textMuted,
+              color: activeSubTab === 'starred' ? theme.colors.primary : theme.colors.textMuted,
               border: 'none',
-              borderBottom: onlyStarred ? `3px solid ${theme.colors.primary}` : '3px solid transparent',
+              borderBottom: activeSubTab === 'starred' ? `3px solid ${theme.colors.primary}` : '3px solid transparent',
               fontWeight: '700',
               fontSize: '16px',
               cursor: 'pointer',
@@ -284,120 +293,63 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
           >
             ★ 주요 뉴스 (이달)
           </button>
+          <button
+            onClick={() => {
+              setOnlyStarred(false);
+              setActiveSubTab('auto-collect');
+            }}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: 'transparent',
+              color: activeSubTab === 'auto-collect' ? theme.colors.primary : theme.colors.textMuted,
+              border: 'none',
+              borderBottom: activeSubTab === 'auto-collect' ? `3px solid ${theme.colors.primary}` : '3px solid transparent',
+              fontWeight: '700',
+              fontSize: '16px',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              marginBottom: '-2px'
+            }}
+          >
+            ⚡ 자동 뉴스 수집
+          </button>
+          <button
+            onClick={() => {
+              setOnlyStarred(false);
+              setActiveSubTab('csv-import');
+            }}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: 'transparent',
+              color: activeSubTab === 'csv-import' ? theme.colors.primary : theme.colors.textMuted,
+              border: 'none',
+              borderBottom: activeSubTab === 'csv-import' ? `3px solid ${theme.colors.primary}` : '3px solid transparent',
+              fontWeight: '700',
+              fontSize: '16px',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              marginBottom: '-2px'
+            }}
+          >
+            📂 CSV 뉴스 등록
+          </button>
         </div>
 
+
         <div style={controlsStyle}>
-          {!onlyStarred ? (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontWeight: '600', color: theme.colors.textMain }}>발행일 조회:</span>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    max={new Date().toISOString().split('T')[0]}
-                    style={dateInputStyle}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontWeight: '600', color: theme.colors.textMain }}>수집 기사 수:</span>
-                  <select
-                    value={collectionLimit}
-                    onChange={(e) => setCollectionLimit(parseInt(e.target.value, 10))}
-                    style={{
-                      ...dateInputStyle,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {[10, 15, 20, 30, 40, 50].map((num) => (
-                      <option key={num} value={num}>
-                        {num}개
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <button
-                  onClick={handleCollect}
-                  disabled={collecting || isAlreadyCollected}
-                  style={collectButtonStyle}
-                  onMouseOver={(e) => {
-                    if (!isAlreadyCollected) e.target.style.opacity = '0.9';
-                  }}
-                  onMouseOut={(e) => {
-                    if (!isAlreadyCollected) e.target.style.opacity = '1';
-                  }}
-                >
-                  {collecting 
-                    ? '수집 중...' 
-                    : isAlreadyCollected 
-                      ? '수집 완료' 
-                      : '새 뉴스 수집 트리거'}
-                </button>
-
-                {/* CSV File Input */}
+          {activeSubTab === 'news' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontWeight: '600', color: theme.colors.textMain }}>발행일 조회:</span>
                 <input
-                  type="file"
-                  accept=".csv"
-                  id="csv-file-selector"
-                  disabled={csvUploading}
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setSelectedCSVFile(e.target.files[0]);
-                    }
-                  }}
-                  style={{ display: 'none' }}
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  max={new Date().toISOString().split('T')[0]}
+                  style={dateInputStyle}
                 />
-                <label
-                  htmlFor="csv-file-selector"
-                  style={{
-                    padding: '10px 15px',
-                    borderRadius: theme.radius.sm,
-                    border: `1px solid ${theme.colors.borderColor}`,
-                    fontSize: '14px',
-                    color: theme.colors.textMain,
-                    backgroundColor: '#ffffff',
-                    cursor: csvUploading ? 'default' : 'pointer',
-                    fontWeight: '600',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    height: '42px',
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  📁 CSV 파일 선택
-                </label>
-
-                {/* News Registration Button */}
-                <button
-                  disabled={!selectedCSVFile || csvUploading}
-                  onClick={() => {
-                    if (selectedCSVFile) {
-                      handleUploadCSV(selectedCSVFile);
-                    }
-                  }}
-                  style={{
-                    ...collectButtonStyle,
-                    backgroundColor: (!selectedCSVFile || csvUploading) ? '#B0BEC5' : '#2E7D32',
-                    cursor: (!selectedCSVFile || csvUploading) ? 'not-allowed' : 'pointer',
-                    height: '42px',
-                    boxSizing: 'border-box',
-                    display: 'inline-flex',
-                    alignItems: 'center'
-                  }}
-                  onMouseOver={(e) => {
-                    if (selectedCSVFile && !csvUploading) e.target.style.opacity = '0.9';
-                  }}
-                  onMouseOut={(e) => {
-                    if (selectedCSVFile && !csvUploading) e.target.style.opacity = '1';
-                  }}
-                >
-                  {csvUploading ? '등록 중...' : '뉴스 등록'}
-                </button>
-
+              </div>
+              <div style={{ marginLeft: 'auto' }}>
                 <button
                   onClick={handleCheckDb}
                   disabled={dbChecking}
@@ -416,9 +368,10 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
                   {dbChecking ? '진단 중...' : '⚙️ 시스템 진단'}
                 </button>
               </div>
+            </div>
+          )}
 
-            </>
-          ) : (
+          {activeSubTab === 'starred' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap', width: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span style={{ fontWeight: '600', color: theme.colors.textMain }}>조회 년월:</span>
@@ -458,7 +411,161 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
               </div>
             </div>
           )}
+
+          {activeSubTab === 'auto-collect' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontWeight: '600', color: theme.colors.textMain }}>수집 일자:</span>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    max={new Date().toISOString().split('T')[0]}
+                    style={dateInputStyle}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontWeight: '600', color: theme.colors.textMain }}>수집 기사 수:</span>
+                  <select
+                    value={collectionLimit}
+                    onChange={(e) => setCollectionLimit(parseInt(e.target.value, 10))}
+                    style={{
+                      ...dateInputStyle,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {[10, 15, 20, 30, 40, 50].map((num) => (
+                      <option key={num} value={num}>
+                        {num}개
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  onClick={handleCollect}
+                  disabled={collecting || isAlreadyCollected}
+                  style={collectButtonStyle}
+                  onMouseOver={(e) => {
+                    if (!isAlreadyCollected) e.target.style.opacity = '0.9';
+                  }}
+                  onMouseOut={(e) => {
+                    if (!isAlreadyCollected) e.target.style.opacity = '1';
+                  }}
+                >
+                  {collecting 
+                    ? '수집 중...' 
+                    : isAlreadyCollected 
+                      ? '수집 완료' 
+                      : '새 뉴스 수집 트리거'}
+                </button>
+                <button
+                  onClick={handleCheckDb}
+                  disabled={dbChecking}
+                  style={{
+                    ...collectButtonStyle,
+                    backgroundColor: theme.colors.primary,
+                    cursor: 'pointer',
+                    height: '42px',
+                    boxSizing: 'border-box',
+                    display: 'inline-flex',
+                    alignItems: 'center'
+                  }}
+                  onMouseOver={(e) => e.target.style.opacity = '0.9'}
+                  onMouseOut={(e) => e.target.style.opacity = '1'}
+                >
+                  {dbChecking ? '진단 중...' : '⚙️ 시스템 진단'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeSubTab === 'csv-import' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontWeight: '600', color: theme.colors.textMain }}>CSV 파일 업로드:</span>
+                <input
+                  type="file"
+                  accept=".csv"
+                  id="csv-file-selector"
+                  disabled={csvUploading}
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setSelectedCSVFile(e.target.files[0]);
+                    }
+                  }}
+                  style={{ display: 'none' }}
+                />
+                <label
+                  htmlFor="csv-file-selector"
+                  style={{
+                    padding: '10px 15px',
+                    borderRadius: theme.radius.sm,
+                    border: `1px solid ${theme.colors.borderColor}`,
+                    fontSize: '14px',
+                    color: theme.colors.textMain,
+                    backgroundColor: '#ffffff',
+                    cursor: csvUploading ? 'default' : 'pointer',
+                    fontWeight: '600',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    height: '42px',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  📁 CSV 파일 선택
+                </label>
+                <button
+                  disabled={!selectedCSVFile || csvUploading}
+                  onClick={() => {
+                    if (selectedCSVFile) {
+                      handleUploadCSV(selectedCSVFile);
+                    }
+                  }}
+                  style={{
+                    ...collectButtonStyle,
+                    backgroundColor: (!selectedCSVFile || csvUploading) ? '#B0BEC5' : '#2E7D32',
+                    cursor: (!selectedCSVFile || csvUploading) ? 'not-allowed' : 'pointer',
+                    height: '42px',
+                    boxSizing: 'border-box',
+                    display: 'inline-flex',
+                    alignItems: 'center'
+                  }}
+                  onMouseOver={(e) => {
+                    if (selectedCSVFile && !csvUploading) e.target.style.opacity = '0.9';
+                  }}
+                  onMouseOut={(e) => {
+                    if (selectedCSVFile && !csvUploading) e.target.style.opacity = '1';
+                  }}
+                >
+                  {csvUploading ? '등록 중...' : '뉴스 등록'}
+                </button>
+              </div>
+              <div style={{ marginLeft: 'auto' }}>
+                <button
+                  onClick={handleCheckDb}
+                  disabled={dbChecking}
+                  style={{
+                    ...collectButtonStyle,
+                    backgroundColor: theme.colors.primary,
+                    cursor: 'pointer',
+                    height: '42px',
+                    boxSizing: 'border-box',
+                    display: 'inline-flex',
+                    alignItems: 'center'
+                  }}
+                  onMouseOver={(e) => e.target.style.opacity = '0.9'}
+                  onMouseOut={(e) => e.target.style.opacity = '1'}
+                >
+                  {dbChecking ? '진단 중...' : '⚙️ 시스템 진단'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
+
 
 
 
