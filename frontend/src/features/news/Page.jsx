@@ -769,15 +769,32 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
 
           <div style={gridStyle}>
             {articles.map((article) => {
-              // Parse dates to compare YYYY-MM-DD
-              const articleDateStr = new Date(article.published_at).toISOString().split('T')[0];
-              const isTodayArticle = articleDateStr === date;
+              // Calculate time difference in hours from now
+              const now = new Date();
+              const publishedTime = new Date(article.published_at);
+              const diffMs = now.getTime() - publishedTime.getTime();
+              const diffHours = diffMs / (1000 * 60 * 60);
 
-              const highlightedCardStyle = isTodayArticle ? {
-                ...cardStyle,
-                backgroundColor: theme.colors.primaryLight,
-                border: `2px solid ${theme.colors.primary}`,
-              } : cardStyle;
+              const isTodayNews = diffHours >= 0 && diffHours <= 24;
+              const isYesterdayNews = diffHours > 24 && diffHours <= 48;
+
+              // Apply distinct highlight styles depending on elapsed time
+              let highlightedCardStyle = cardStyle;
+              if (isTodayNews) {
+                highlightedCardStyle = {
+                  ...cardStyle,
+                  backgroundColor: theme.colors.primaryLight,
+                  border: `2px solid ${theme.colors.primary}`,
+                };
+              } else if (isYesterdayNews) {
+                highlightedCardStyle = {
+                  ...cardStyle,
+                  backgroundColor: '#FFF3E0',
+                  border: `2px solid ${theme.colors.accent}`,
+                };
+              }
+
+              const hasHighlight = isTodayNews || isYesterdayNews;
 
               return (
                 <div
@@ -800,7 +817,26 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
                   </button>
 
                   {/* Today News Highlight Badge */}
-                  {isTodayArticle && (
+                  {isTodayNews && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '15px',
+                      left: '20px',
+                      backgroundColor: theme.colors.primary,
+                      color: '#ffffff',
+                      padding: '4px 10px',
+                      borderRadius: theme.radius.sm,
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      letterSpacing: '0.5px',
+                      boxShadow: theme.shadows.sm,
+                    }}>
+                      📢 HOT (오늘)
+                    </div>
+                  )}
+
+                  {/* Yesterday News Highlight Badge */}
+                  {isYesterdayNews && (
                     <div style={{
                       position: 'absolute',
                       top: '15px',
@@ -814,11 +850,11 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
                       letterSpacing: '0.5px',
                       boxShadow: theme.shadows.sm,
                     }}>
-                      🔥 오늘 뉴스
+                      🔥 HOT (어제)
                     </div>
                   )}
 
-                  <div style={{ marginTop: isTodayArticle ? '25px' : '0px' }}>
+                  <div style={{ marginTop: hasHighlight ? '25px' : '0px' }}>
                     <div style={cardTitleStyle}>{article.title_ko}</div>
                     <div style={cardJaTitleStyle}>{article.title_ja}</div>
                     <p style={cardSummaryStyle}>{article.summary_ko}</p>
