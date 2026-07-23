@@ -286,9 +286,15 @@ def import_news_from_csv(
     try:
         contents = file.file.read()
         try:
+            # Try UTF-8 first
             decoded_content = contents.decode('utf-8-sig')
         except UnicodeDecodeError:
-            decoded_content = contents.decode('cp949', errors='replace')
+            try:
+                # Try MS949 (Korean/Japanese extended encoding on Windows)
+                decoded_content = contents.decode('ms949')
+            except UnicodeDecodeError:
+                # Fallback to UTF-8 with replace as absolute last resort
+                decoded_content = contents.decode('utf-8', errors='replace')
         buffer = io.StringIO(decoded_content)
         reader = csv.reader(buffer)
         
