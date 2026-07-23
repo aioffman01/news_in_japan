@@ -319,7 +319,7 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
                   </select>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 <button
                   onClick={handleCollect}
                   disabled={collecting || isAlreadyCollected}
@@ -337,6 +337,67 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
                       ? '수집 완료' 
                       : '새 뉴스 수집 트리거'}
                 </button>
+
+                {/* CSV File Input */}
+                <input
+                  type="file"
+                  accept=".csv"
+                  id="csv-file-selector"
+                  disabled={csvUploading}
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setSelectedCSVFile(e.target.files[0]);
+                    }
+                  }}
+                  style={{ display: 'none' }}
+                />
+                <label
+                  htmlFor="csv-file-selector"
+                  style={{
+                    padding: '10px 15px',
+                    borderRadius: theme.radius.sm,
+                    border: `1px solid ${theme.colors.borderColor}`,
+                    fontSize: '14px',
+                    color: theme.colors.textMain,
+                    backgroundColor: '#ffffff',
+                    cursor: csvUploading ? 'default' : 'pointer',
+                    fontWeight: '600',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    height: '42px',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  📁 CSV 파일 선택
+                </label>
+
+                {/* News Registration Button */}
+                <button
+                  disabled={!selectedCSVFile || csvUploading}
+                  onClick={() => {
+                    if (selectedCSVFile) {
+                      handleUploadCSV(selectedCSVFile);
+                    }
+                  }}
+                  style={{
+                    ...collectButtonStyle,
+                    backgroundColor: (!selectedCSVFile || csvUploading) ? '#B0BEC5' : '#2E7D32',
+                    cursor: (!selectedCSVFile || csvUploading) ? 'not-allowed' : 'pointer',
+                    height: '42px',
+                    boxSizing: 'border-box',
+                    display: 'inline-flex',
+                    alignItems: 'center'
+                  }}
+                  onMouseOver={(e) => {
+                    if (selectedCSVFile && !csvUploading) e.target.style.opacity = '0.9';
+                  }}
+                  onMouseOut={(e) => {
+                    if (selectedCSVFile && !csvUploading) e.target.style.opacity = '1';
+                  }}
+                >
+                  {csvUploading ? '등록 중...' : '뉴스 등록'}
+                </button>
+
                 <button
                   onClick={handleCheckDb}
                   disabled={dbChecking}
@@ -344,6 +405,10 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
                     ...collectButtonStyle,
                     backgroundColor: theme.colors.primary,
                     cursor: 'pointer',
+                    height: '42px',
+                    boxSizing: 'border-box',
+                    display: 'inline-flex',
+                    alignItems: 'center'
                   }}
                   onMouseOver={(e) => e.target.style.opacity = '0.9'}
                   onMouseOut={(e) => e.target.style.opacity = '1'}
@@ -351,6 +416,7 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
                   {dbChecking ? '진단 중...' : '⚙️ 시스템 진단'}
                 </button>
               </div>
+
             </>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap', width: '100%' }}>
@@ -394,6 +460,46 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
           )}
         </div>
 
+
+
+        {/* CSV Import Notification Area */}
+        {!onlyStarred && (selectedCSVFile || csvMessage) && (
+          <div style={{
+            marginBottom: '20px',
+            padding: '12px 18px',
+            backgroundColor: '#F5F5F5',
+            border: `1px solid ${theme.colors.borderColor}`,
+            borderRadius: theme.radius.sm,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '13px',
+            color: theme.colors.textMain,
+            flexWrap: 'wrap',
+            gap: '10px'
+          }}>
+            <div>
+              {selectedCSVFile && (
+                <span style={{ color: '#2E7D32', fontWeight: '700', marginRight: '15px' }}>
+                  📁 대기 파일: {selectedCSVFile.name} ({Math.round(selectedCSVFile.size / 1024)} KB)
+                </span>
+              )}
+              {csvMessage && (
+                <span style={{ 
+                  color: csvMessage.includes('오류') ? '#C62828' : theme.colors.primary, 
+                  fontWeight: '600'
+                }}>
+                  {csvUploading ? '⏳ 처리 중: ' : '🔔 알림: '} {csvMessage}
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: '11px', color: theme.colors.textMuted }}>
+              * 필수 항목: 기사제목, 요약, 출처, 원본 link, 발행일
+            </div>
+          </div>
+        )}
+
+
         {/* Database Diagnostic Status Card */}
         {dbStatus !== 'idle' && (
           <div style={{
@@ -436,85 +542,7 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
           </div>
         )}
 
-        {/* CSV Bulk Import Card */}
-        {!onlyStarred && (
-          <div style={{
-            marginBottom: '30px',
-            padding: '20px',
-            borderRadius: theme.radius.md,
-            backgroundColor: theme.colors.bgCard,
-            border: `1px solid ${theme.colors.borderColor}`,
-            boxShadow: theme.shadows.sm,
-          }}>
-            <div style={{ fontWeight: '700', fontSize: '16px', color: theme.colors.textMain, marginBottom: '15px' }}>
-              📂 CSV 기사 파일 일괄 업로드
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-              <input
-                type="file"
-                accept=".csv"
-                disabled={csvUploading}
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    setSelectedCSVFile(e.target.files[0]);
-                  }
-                }}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: theme.radius.sm,
-                  border: `1px solid ${theme.colors.borderColor}`,
-                  fontSize: '14px',
-                  backgroundColor: '#ffffff',
-                  cursor: csvUploading ? 'default' : 'pointer'
-                }}
-              />
-              <button
-                disabled={!selectedCSVFile || csvUploading}
-                onClick={() => {
-                  if (selectedCSVFile) {
-                    handleUploadCSV(selectedCSVFile);
-                  }
-                }}
-                style={{
-                  ...collectButtonStyle,
-                  backgroundColor: (!selectedCSVFile || csvUploading) ? '#B0BEC5' : '#2E7D32',
-                  cursor: (!selectedCSVFile || csvUploading) ? 'not-allowed' : 'pointer',
-                  color: '#ffffff',
-                  fontSize: '14px',
-                  padding: '10px 20px',
-                  fontWeight: '600'
-                }}
-                onMouseOver={(e) => {
-                  if (selectedCSVFile && !csvUploading) e.target.style.opacity = '0.9';
-                }}
-                onMouseOut={(e) => {
-                  if (selectedCSVFile && !csvUploading) e.target.style.opacity = '1';
-                }}
-              >
-                {csvUploading ? '등록 중...' : '뉴스 등록'}
-              </button>
 
-              {csvMessage && (
-                <div style={{ 
-                  fontSize: '14px', 
-                  color: csvMessage.includes('오류') ? '#C62828' : theme.colors.primary, 
-                  fontWeight: '600',
-                  whiteSpace: 'pre-line'
-                }}>
-                  {csvUploading ? '⏳ ' : '🔔 '} {csvMessage}
-                </div>
-              )}
-            </div>
-            {selectedCSVFile && (
-              <div style={{ marginTop: '8px', fontSize: '13px', color: '#1B5E20', fontWeight: '600' }}>
-                📁 선택된 파일: {selectedCSVFile.name} ({Math.round(selectedCSVFile.size / 1024)} KB) - 준비 완료
-              </div>
-            )}
-            <div style={{ marginTop: '10px', fontSize: '12px', color: theme.colors.textMuted }}>
-              * 지원하는 필수 열 이름(BOM 대응): <b>기사제목, 요약, 출처, 원본 link, 발행일</b> (URL 중복 방지 기능 제공)
-            </div>
-          </div>
-        )}
 
 
 
