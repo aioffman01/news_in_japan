@@ -34,11 +34,16 @@ if ! command -v node &> /dev/null; then
   dnf install -y nodejs
 fi
 
+# Define dynamic deployment path for frontend static assets
+# Accept first script argument ($1) or fallback to default path
+TARGET_FRONTEND_DIR="${1:-/var/www/news_in_japan}"
+echo "📁 Target Frontend Host Directory: $TARGET_FRONTEND_DIR"
+
 # 3. Create decoupled Nginx webroot directory
-echo "📁 Preparing isolated frontend root: /var/www/news_in_japan..."
-mkdir -p /var/www/news_in_japan/assets
-chown -R nginx:nginx /var/www/news_in_japan
-chmod -R 755 /var/www/news_in_japan
+echo "Preparing isolated frontend directory..."
+mkdir -p "$TARGET_FRONTEND_DIR/assets"
+chown -R nginx:nginx "$TARGET_FRONTEND_DIR"
+chmod -R 755 "$TARGET_FRONTEND_DIR"
 
 # 4. Set up Backend Python Virtual Environment
 echo "🐍 Setting up Python Virtual Environment..."
@@ -56,12 +61,12 @@ cd "$PROJECT_ROOT/frontend"
 npm install
 npm run build
 
-echo "🚚 Transferring built static resources to /var/www/news_in_japan..."
-rm -rf /var/www/news_in_japan/*
-mkdir -p /var/www/news_in_japan/assets
-cp -r dist/* /var/www/news_in_japan/
-chown -R nginx:nginx /var/www/news_in_japan
-echo "✅ Frontend deployed to /var/www/news_in_japan!"
+echo "🚚 Transferring built static resources to $TARGET_FRONTEND_DIR..."
+rm -rf "$TARGET_FRONTEND_DIR"/*
+mkdir -p "$TARGET_FRONTEND_DIR/assets"
+cp -r dist/* "$TARGET_FRONTEND_DIR/"
+chown -R nginx:nginx "$TARGET_FRONTEND_DIR"
+echo "✅ Frontend deployed to $TARGET_FRONTEND_DIR!"
 
 # 6. Configure Systemd Service for FastAPI backend
 echo "⚙️ Creating Systemd Backend Service File..."
@@ -87,7 +92,7 @@ echo "✅ Backend systemd service enabled and started!"
 
 # 7. Configure decoupled Nginx Virtual Host
 echo "🌐 Writing Nginx Host configuration (/etc/nginx/conf.d/news_in_japan.conf)..."
-cat <<'EOF' > /etc/nginx/conf.d/news_in_japan.conf
+cat <<EOF > /etc/nginx/conf.d/news_in_japan.conf
 server {
     listen 8001;
     server_name _;
@@ -99,9 +104,9 @@ server {
 
     # 1. Directly host static frontend assets from decoupled directory
     location / {
-        root /var/www/news_in_japan;
+        root $TARGET_FRONTEND_DIR;
         index index.html;
-        try_files $uri $uri/ /index.html;
+        try_files \$uri \$uri/ /index.html;
 
         # Disable browser cache completely
         add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
@@ -112,10 +117,10 @@ server {
     # 2. Route all API calls to FastAPI Backend service
     location /api {
         proxy_pass http://127.0.0.1:9001;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
 
         # Real-time event streaming optimization
         proxy_http_version 1.1;
