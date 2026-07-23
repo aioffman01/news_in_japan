@@ -56,6 +56,11 @@ export const useNews = (token, onLogout) => {
       setCsvUploading(false);
     }
   };
+  const clearDbStatus = () => {
+    setDbStatus('idle');
+    setDbMessage('');
+    setDbErrorDetails('');
+  };
 
 
   const handleCheckDb = async () => {
@@ -244,6 +249,7 @@ export const useNews = (token, onLogout) => {
     dbStatus,
     dbMessage,
     dbErrorDetails,
+    clearDbStatus,
     buildVersion,
     handleCheckDb,
     csvUploading,

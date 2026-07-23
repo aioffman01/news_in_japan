@@ -24,6 +24,7 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
     dbStatus,
     dbMessage,
     dbErrorDetails,
+    clearDbStatus,
     handleCheckDb,
     buildVersion,
     csvUploading,
@@ -626,13 +627,37 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
         {dbStatus !== 'idle' && (
           <div style={{
             marginBottom: '30px',
-            padding: '20px',
+            padding: '20px 45px 20px 20px', // Add right padding to prevent text overlapping close button
             borderRadius: theme.radius.md,
             backgroundColor: dbStatus === 'success' ? '#E8F5E9' : (dbStatus === 'partial_error' ? '#FFF9C4' : '#FFEBEE'),
             border: `1px solid ${dbStatus === 'success' ? '#81C784' : (dbStatus === 'partial_error' ? '#FFF59D' : '#E57373')}`,
             color: dbStatus === 'success' ? '#2E7D32' : (dbStatus === 'partial_error' ? '#F57F17' : '#C62828'),
             boxShadow: theme.shadows.sm,
+            position: 'relative'
           }}>
+            {/* Close Button */}
+            <button
+              onClick={clearDbStatus}
+              style={{
+                position: 'absolute',
+                top: '15px',
+                right: '15px',
+                background: 'none',
+                border: 'none',
+                fontSize: '13px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                color: dbStatus === 'success' ? '#2E7D32' : (dbStatus === 'partial_error' ? '#F57F17' : '#C62828'),
+                opacity: '0.7',
+                outline: 'none',
+                transition: 'opacity 0.2s'
+              }}
+              onMouseOver={(e) => e.target.style.opacity = '1'}
+              onMouseOut={(e) => e.target.style.opacity = '0.7'}
+            >
+              ❌ 닫기
+            </button>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', fontSize: '16px', marginBottom: dbErrorDetails ? '15px' : '0px' }}>
               <span>{dbStatus === 'success' ? '✅' : (dbStatus === 'partial_error' ? '⚠️' : '❌')}</span>
               <span style={{ whiteSpace: 'pre-line' }}>{dbMessage}</span>
