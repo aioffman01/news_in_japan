@@ -65,7 +65,7 @@ echo "✅ Frontend deployed to /var/www/news_in_japan!"
 
 # 6. Configure Systemd Service for FastAPI backend
 echo "⚙️ Creating Systemd Backend Service File..."
-cat <<EOF > /etc/systemd/system/news-in-japan.service
+cat <<EOF > /etc/systemd/system/newsinjapan.service
 [Unit]
 Description=NewsInJapan FastAPI backend Service
 After=network.target
@@ -81,8 +81,8 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable news-in-japan
-systemctl restart news-in-japan
+systemctl enable newsinjapan
+systemctl restart newsinjapan
 echo "✅ Backend systemd service enabled and started!"
 
 # 7. Configure decoupled Nginx Virtual Host
