@@ -296,7 +296,13 @@ def import_news_from_csv(
                 # Fallback to UTF-8 with replace as absolute last resort
                 decoded_content = contents.decode('utf-8', errors='replace')
         buffer = io.StringIO(decoded_content)
-        reader = csv.reader(buffer)
+        # Parse standard double-quoted CSV values safely
+        reader = csv.reader(
+            buffer, 
+            quotechar='"', 
+            doublequote=True, 
+            skipinitialspace=True
+        )
         
         # Read header row
         header = next(reader, None)
