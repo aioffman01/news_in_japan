@@ -33,7 +33,7 @@ export const useNews = (token, onLogout) => {
   const handleCheckDb = async () => {
     setDbChecking(true);
     setDbStatus('idle');
-    setDbMessage('DB 연결 상태 확인 중...');
+    setDbMessage('시스템 구성요소 상태 진단 중...');
     setDbErrorDetails('');
     try {
       const res = await checkDbStatus(token);
@@ -43,17 +43,18 @@ export const useNews = (token, onLogout) => {
       } else {
         setDbStatus('error');
         setDbMessage(res.message);
-        setDbErrorDetails(res.stack_trace || res.error_detail || '알 수 없는 오류가 발생했습니다.');
+        setDbErrorDetails(res.stack_trace || res.error_detail || '상세 에러 내역이 없습니다.');
       }
     } catch (err) {
       console.error(err);
       setDbStatus('error');
-      setDbMessage('API 호출 도중 오류가 발생했습니다.');
+      setDbMessage('진단 API 호출 도중 통신 오류가 발생했습니다.');
       setDbErrorDetails(err.response?.data?.detail || err.message || err.toString());
     } finally {
       setDbChecking(false);
     }
   };
+
 
 
   const loadNews = useCallback(async () => {

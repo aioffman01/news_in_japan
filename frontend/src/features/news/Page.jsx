@@ -333,7 +333,7 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
                   onMouseOver={(e) => e.target.style.opacity = '0.9'}
                   onMouseOut={(e) => e.target.style.opacity = '1'}
                 >
-                  {dbChecking ? '진단 중...' : '🔌 DB 연결 진단'}
+                  {dbChecking ? '진단 중...' : '⚙️ 시스템 진단'}
                 </button>
               </div>
             </>
@@ -385,20 +385,20 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
             marginBottom: '30px',
             padding: '20px',
             borderRadius: theme.radius.md,
-            backgroundColor: dbStatus === 'success' ? '#E8F5E9' : '#FFEBEE',
-            border: `1px solid ${dbStatus === 'success' ? '#81C784' : '#E57373'}`,
-            color: dbStatus === 'success' ? '#2E7D32' : '#C62828',
+            backgroundColor: dbStatus === 'success' ? '#E8F5E9' : (dbStatus === 'partial_error' ? '#FFF9C4' : '#FFEBEE'),
+            border: `1px solid ${dbStatus === 'success' ? '#81C784' : (dbStatus === 'partial_error' ? '#FFF59D' : '#E57373')}`,
+            color: dbStatus === 'success' ? '#2E7D32' : (dbStatus === 'partial_error' ? '#F57F17' : '#C62828'),
             boxShadow: theme.shadows.sm,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', fontSize: '16px', marginBottom: dbErrorDetails ? '15px' : '0px' }}>
-              <span>{dbStatus === 'success' ? '✅' : '❌'}</span>
-              <span>{dbMessage}</span>
+              <span>{dbStatus === 'success' ? '✅' : (dbStatus === 'partial_error' ? '⚠️' : '❌')}</span>
+              <span style={{ whiteSpace: 'pre-line' }}>{dbMessage}</span>
             </div>
             
-            {dbStatus === 'error' && dbErrorDetails && (
+            {dbErrorDetails && (
               <div style={{ marginTop: '10px' }}>
-                <div style={{ fontWeight: '600', marginBottom: '8px', fontSize: '14px', color: '#B71C1C' }}>
-                  🔧 상세 오류 로그 (디버깅 정보):
+                <div style={{ fontWeight: '600', marginBottom: '8px', fontSize: '14px', color: dbStatus === 'partial_error' ? '#F57F17' : '#B71C1C' }}>
+                  🔧 상세 진단 로그 및 스택 트레이스:
                 </div>
                 <pre style={{
                   backgroundColor: '#1E1E1E',

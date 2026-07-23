@@ -197,37 +197,68 @@ def check_db_connection(
     db: Session = Depends(get_db)
 ):
     """
-    Test connectivity to the database, check tables, and return detailed row count and logs.
+    Perform comprehensive system diagnostics including database health, table counts,
+    and Gemini API key authorization connectivity.
     """
     import traceback
+    db_ok = False
+    gemini_ok = False
+    details = []
+    stack_trace = ""
+
+    # 1. Database Diagnosis
     try:
         from sqlalchemy import text
         from app.models.news import News
         from app.models.history import CollectionHistory
         
-        # 1. Simple connection ping
         db.execute(text("SELECT 1;"))
-        
-        # 2. Count news records
         news_count = db.query(News).count()
-        
-        # 3. Count collection history records
         history_count = db.query(CollectionHistory).count()
+        db_ok = True
+        details.append(f"데이터베이스 연결 성공 (저장된 뉴스: {news_count}건, 수집 히스토리: {history_count}건)")
+    except Exception as db_err:
+        db_msg = str(db_err).split('\n')[0]
+        details.append(f"데이터베이스 연결 실패 (이유: {db_msg})")
+        stack_trace += f"--- Database Error ---\n{traceback.format_exc()}\n"
+
+    # 2. Gemini API Diagnosis
+    try:
+        from app.core.config import settings
+        import google.generativeai as genai
         
+        api_key = settings.GEMINI_API_KEY
+        if not api_key:
+            details.append("Gemini API: API Key가 설정되지 않았습니다 (.env 파일의 GEMINI_API_KEY 누락).")
+        else:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel("gemini-2.0-flash")
+            # Run simple query to check authentication
+            response = model.generate_content("Ping")
+            if response and response.text:
+                gemini_ok = True
+                details.append("Gemini API: 인증 및 테스트 모델 응답 성공 (정상 작동 중)")
+            else:
+                details.append("Gemini API: 응답을 수신했으나 결과 텍스트가 비어 있습니다.")
+    except Exception as gemini_err:
+        gemini_msg = str(gemini_err).split('\n')[0]
+        details.append(f"Gemini API: 인증 또는 호출 실패 (이유: {gemini_msg})")
+        stack_trace += f"--- Gemini API Error ---\n{traceback.format_exc()}\n"
+
+    # Final logic
+    if db_ok and gemini_ok:
         return {
             "status": "ok",
-            "message": f"데이터베이스가 정상 연결되었습니다. (저장된 뉴스: {news_count}건, 수집 히스토리: {history_count}건)"
+            "message": "시스템 진단 완료: 모든 구성요소가 정상 작동하고 있습니다.\n- " + "\n- ".join(details)
         }
-    except Exception as e:
-        error_msg = str(e)
-        stack_trace = traceback.format_exc()
-        logger.error(f"DB Check Failed: {error_msg}\n{stack_trace}")
+    else:
+        status_label = "partial_error" if (db_ok or gemini_ok) else "error"
         return {
-            "status": "error",
-            "message": "데이터베이스 연결 혹은 테이블 조회에 실패했습니다.",
-            "error_detail": error_msg,
-            "stack_trace": stack_trace
+            "status": status_label,
+            "message": "시스템 진단 완료: 일부 구성요소에 문제가 감지되었습니다.\n- " + "\n- ".join(details),
+            "stack_trace": stack_trace if stack_trace else "오류 원인은 상세 진단 로그를 확인하세요."
         }
+
 
 
 @router.get("/version")
