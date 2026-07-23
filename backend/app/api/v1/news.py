@@ -303,20 +303,6 @@ def import_news_from_csv(
         if not header:
             raise HTTPException(status_code=400, detail="The uploaded CSV file is empty.")
 
-        # Map headers to column indices
-        expected_cols = ["기사제목", "요약", "출처", "원본 link", "발행일"]
-        col_indices = {}
-        for col_name in expected_cols:
-            try:
-                # Find matching column (exact or partial match)
-                index = next(i for i, h in enumerate(header) if col_name in h.replace(" ", ""))
-                col_indices[col_name] = index
-            except StopIteration:
-                raise HTTPException(
-                    status_code=400, 
-                    detail=f"Required column '{col_name}' is missing in CSV header. Found: {', '.join(header)}"
-                )
-
         success_count = 0
         skip_count = 0
         error_count = 0
@@ -324,15 +310,19 @@ def import_news_from_csv(
         processed_keys = set() # Track (date, url) pairs to prevent duplicates within the uploaded file
 
         for line_num, row in enumerate(reader, start=2):
-            if not row or len(row) < len(col_indices):
-                continue # Skip empty rows
+            # Safe check: if row has fewer than 5 columns, ignore this line
+            if not row or len(row) < 5:
+                error_count += 1
+                error_logs.append(f"라인 {line_num}: 열 개수가 부족합니다 (필수 5개).")
+                continue
 
             try:
-                title_ko = row[col_indices["기사제목"]].strip()
-                summary_ko = row[col_indices["요약"]].strip()
-                publisher = row[col_indices["출처"]].strip()
-                original_url = row[col_indices["원본 link"]].strip()
-                published_at_raw = row[col_indices["발행일"]].strip()
+                # Fixed mapping by index order: 기사제목(0), 요약(1), 출처(2), 원본 link(3), 발행일(4)
+                title_ko = row[0].strip()
+                summary_ko = row[1].strip()
+                publisher = row[2].strip()
+                original_url = row[3].strip()
+                published_at_raw = row[4].strip()
 
                 if not title_ko or not original_url:
                     error_count += 1
