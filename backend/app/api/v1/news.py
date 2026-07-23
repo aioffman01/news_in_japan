@@ -279,13 +279,17 @@ def import_news_from_csv(
     from app.schemas.news import NewsCreate
     from app.crud.news import news as crud_news
 
-    # Check file extension
-    if not file.filename.endswith('.csv'):
+    # Check file extension (case-insensitive)
+    if not file.filename.lower().endswith('.csv'):
         raise HTTPException(status_code=400, detail="Only CSV files are supported.")
 
     try:
         contents = file.file.read()
-        buffer = io.StringIO(contents.decode('utf-8-sig')) # Handle potential BOM
+        try:
+            decoded_content = contents.decode('utf-8-sig')
+        except UnicodeDecodeError:
+            decoded_content = contents.decode('cp949', errors='replace')
+        buffer = io.StringIO(decoded_content)
         reader = csv.reader(buffer)
         
         # Read header row
