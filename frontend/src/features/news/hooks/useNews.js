@@ -34,14 +34,19 @@ export const useNews = (token, onLogout) => {
   // CSV Import States
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvMessage, setCsvMessage] = useState('');
+  const [csvErrors, setCsvErrors] = useState([]);
 
   const handleUploadCSV = async (file) => {
     if (!file) return;
     setCsvUploading(true);
     setCsvMessage('CSV 파일 업로드 및 분석 중...');
+    setCsvErrors([]);
     try {
       const res = await importCSV(file, token);
       setCsvMessage(res.message);
+      if (res.errors) {
+        setCsvErrors(res.errors);
+      }
       loadNews();
     } catch (err) {
       console.error(err);
@@ -243,6 +248,7 @@ export const useNews = (token, onLogout) => {
     handleCheckDb,
     csvUploading,
     csvMessage,
+    csvErrors,
     handleUploadCSV,
     refresh: loadNews
   };

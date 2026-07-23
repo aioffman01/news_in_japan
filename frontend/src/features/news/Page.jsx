@@ -28,6 +28,7 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
     buildVersion,
     csvUploading,
     csvMessage,
+    csvErrors,
     handleUploadCSV
   } = useNews(token, onLogout);
 
@@ -544,6 +545,30 @@ export const NewsDashboardPage = ({ token, onLogout }) => {
             </div>
           </div>
         )}
+
+        {/* CSV Import Detailed Line Errors */}
+        {!onlyStarred && csvErrors && csvErrors.length > 0 && (
+          <div style={{
+            marginBottom: '20px',
+            padding: '20px',
+            borderRadius: theme.radius.md,
+            backgroundColor: '#FFEBEE',
+            border: '1px solid #E57373',
+            color: '#C62828',
+            boxShadow: theme.shadows.sm
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700', fontSize: '15px', marginBottom: '12px' }}>
+              <span>⚠️</span>
+              <span>CSV 뉴스 등록 과정 중 일부 라인에서 에러가 발생했습니다 (정상 라인은 기등록 완료):</span>
+            </div>
+            <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', lineHeight: '1.7', fontWeight: '500' }}>
+              {csvErrors.map((errItem, idx) => (
+                <li key={idx} style={{ marginBottom: '4px' }}>{errItem}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
 
 
         {/* Database Diagnostic Status Card */}
